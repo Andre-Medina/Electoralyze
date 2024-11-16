@@ -1,10 +1,9 @@
-from ui.common import UIScaffold, create_application
+from ui.common import create_application
 from ui.pages import Analytics, Archive, Home
 
 app = create_application(
     name="Electoralyze",
     pages=[Analytics, Home, Archive],
-    page_base=UIScaffold,
 )
 
 # Expose server for Flask

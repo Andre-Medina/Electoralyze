@@ -13,7 +13,7 @@ electoralyze = { path = "packages/electoralyze", editable = true }
 
 [feature.ui.pypi-dependencies]
 ui = { path = "packages/ui", editable = true }
-# dash = { version = "*", extras = ["compress"] }
+dash-iconify = ">=0.1.2, <0.2"
 
 [tasks]
 tests = "pytest -v packages/electoralyze/tests"

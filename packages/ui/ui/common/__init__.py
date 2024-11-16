@@ -1,9 +1,11 @@
+from .id import id
 from .make_app import create_application
 from .page import Page
-from .ui_scaffold import UIScaffold
+from .scaffold import Scaffold
 
 __all__ = [
-    "UIScaffold",
+    "Scaffold",
     "Page",
     "create_application",
+    "id",
 ]

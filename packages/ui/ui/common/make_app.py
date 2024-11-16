@@ -2,12 +2,12 @@ import dash_mantine_components as dmc
 from dash import Dash, register_page
 
 from ui.common.page import Page
+from ui.common.scaffold import Scaffold
 
 
 def create_application(
     name: str,
     pages: list[Page.__class__],
-    page_base: dmc.MantineProvider.__class__,
 ) -> Dash:
     """Create the application."""
     app = Dash(
@@ -20,7 +20,7 @@ def create_application(
         # routing_callback_inputs={"state": State(ids.state, "data")},
     )
 
-    app.layout = page_base(pages=pages)
+    app.layout = Scaffold(name=name, pages=pages)
 
     for page in pages:
         register_page(page.label, path=page.path, layout=page)
