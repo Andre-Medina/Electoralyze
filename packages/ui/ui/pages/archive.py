@@ -1,9 +1,19 @@
 import dash
 from dash import html
 
-dash.register_page(__name__)
+from ui.common.page_base import Page
 
-layout = html.Div([
-    html.H1('This is our Archive page'),
-    html.Div('This is our Archive page content.'),
-])
+
+class Archive(Page):
+    
+    path = "/archive"
+    label = "Archive"
+
+    def __init__(self):
+
+        layout = html.Div([
+            html.H1('This is our Archive page'),
+            html.Div('This is our Archive page content.'),
+        ])
+
+        super().__init__(layout)

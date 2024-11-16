@@ -1,17 +1,16 @@
 import dash
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, register_page
 
-app = Dash(__name__, use_pages=True)
+from ui.common.make_app import create_application
 
-app.layout = html.Div([
-    html.H1('Multi-page app with Dash Pages'),
-    html.Div([
-        html.Div(
-            dcc.Link(f"{page['name']} - {page['path']}", href=page["relative_path"])
-        ) for page in dash.page_registry.values()
-    ]),
-    dash.page_container
-])
+from ui.pages import Analytics, Home, Archive
+
+
+app = create_application(
+    name = "Electoralyze",
+    pages = [Analytics, Home, Archive],
+    # page_base= ,
+)
 
 # Expose server for Flask
 server = app.server 
