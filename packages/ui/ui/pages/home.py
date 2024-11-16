@@ -1,6 +1,6 @@
 from dash import html
 
-from ui.common.page_base import Page
+from ui.common import Page
 
 # dash.register_page(__name__, path='/')
 

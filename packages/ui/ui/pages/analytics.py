@@ -1,6 +1,7 @@
+import dash_mantine_components as dmc
 from dash import Input, Output, callback, dcc, html
 
-from ui.common.page_base import Page
+from ui.common import Page
 
 
 class Analytics(Page):
@@ -11,7 +12,7 @@ class Analytics(Page):
 
     def __init__(self):
         """Page for Analytics."""
-        layout = html.Div(
+        layout = dmc.Stack(
             [
                 html.H1("This is our Analytics page"),
                 html.Div(

@@ -1,14 +1,13 @@
-import dash
-from dash import Dash, dcc, html, register_page
-from dash.development.base_component import Component
+import dash_mantine_components as dmc
+from dash import Dash, register_page
 
-from ui.common.page_base import Page
+from ui.common.page import Page
 
 
 def create_application(
     name: str,
-    pages: list[Page],
-    page_base: Component | None = None,  # noqa: ARG001
+    pages: list[Page.__class__],
+    page_base: dmc.MantineProvider.__class__,
 ) -> Dash:
     """Create the application."""
     app = Dash(
@@ -17,21 +16,11 @@ def create_application(
         pages_folder="",
         compress=True,
         suppress_callback_exceptions=True,
+        external_stylesheets=dmc.styles.ALL,
         # routing_callback_inputs={"state": State(ids.state, "data")},
     )
 
-    app.layout = html.Div(
-        [
-            html.H1("Multi-page app with Dash Pages"),
-            html.Div(
-                [
-                    html.Div(dcc.Link(f"{page['name']} - {page['path']}", href=page["relative_path"]))
-                    for page in dash.page_registry.values()
-                ]
-            ),
-            dash.page_container,
-        ]
-    )
+    app.layout = page_base(pages=pages)
 
     for page in pages:
         register_page(page.label, path=page.path, layout=page)

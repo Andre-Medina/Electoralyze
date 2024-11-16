@@ -1,6 +1,6 @@
 from dash import html
 
-from ui.common.page_base import Page
+from ui.common import Page
 
 
 class Archive(Page):
