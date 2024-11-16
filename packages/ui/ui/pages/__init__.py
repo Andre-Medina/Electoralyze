@@ -1,7 +1,6 @@
-
-from .analytics import Analytics
-from .home import Home
-from .archive import Archive
 from . import navigation
+from .analytics import Analytics
+from .archive import Archive
+from .home import Home
 
 __all__ = ["Analytics", "Home", "navigation", "Archive"]
