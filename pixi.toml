@@ -20,6 +20,9 @@ tests = "pytest -v packages/electoralyze/tests"
 [feature.dev.tasks]
 test_all = "pytest -v packages"
 
+[feature.ui.dependencies]
+dash = ">=2.18.1,<3"
+
 [dependencies]
 rich = ">=13.9.3,<14"
 pytest = "*"
