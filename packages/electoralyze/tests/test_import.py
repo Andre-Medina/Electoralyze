@@ -1,10 +1,10 @@
 def test_import():
     """Test import."""
-    import pixi_py  # noqa: F401
+    import electoralyze  # noqa: F401
 
 
 def test_say_hellos():
     """Test using function."""
-    import pixi_py
+    import electoralyze
 
-    pixi_py.say_hello()
+    electoralyze.say_hello()

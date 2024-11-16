@@ -1,4 +1,4 @@
-from pixi_py.hello import hello
+from electoralyze.hello import hello
 from rich import print
 
 MAX = 10

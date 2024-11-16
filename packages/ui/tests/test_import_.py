@@ -1,10 +1,10 @@
 def test_import():
     """Test import."""
-    import pixi_py_copy  # noqa: F401
+    import ui  # noqa: F401
 
 
 def test_say_hellos():
     """Test using function."""
-    import pixi_py_copy
+    import ui
 
-    pixi_py_copy.say_hello()
+    ui.say_hello()
