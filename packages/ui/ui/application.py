@@ -13,5 +13,8 @@ app.layout = html.Div([
     dash.page_container
 ])
 
+# Expose server for Flask
+server = app.server 
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run_server(debug=True, dev_tools_ui=True, host="localhost")

@@ -10,7 +10,8 @@
             "request": "launch",
             "module": "flask",
             "env": {
-                "FLASK_APP": "packages/ui/ui/application.py",
+                "FLASK_APP": "ui/application.py",
+                // "FLASK_APP": "/home/andre/git/private/electoralyze/packages/ui/ui/application.py",
                 "FLASK_DEBUG": "1"
             },
             "args": [
@@ -22,6 +23,6 @@
             "autoStartBrowser": false,
             "justMyCode": false,
             "cwd":"${workspaceFolder}/packages/ui",
-        }
+        },
     ]
 }
