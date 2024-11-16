@@ -4,17 +4,18 @@ platforms = ["linux-64"]
 name = "vision"
 
 [environments]
-dev = { features = ["dev"], solve-group = "default"}
-default = { features = ["dev"], solve-group = "default"}
+ui = { features = ["ui"], solve-group = "default"}
+dev = { features = ["dev","ui"], solve-group = "default"}
+default = { features = ["dev", "ui"], solve-group = "default"}
 
 [pypi-dependencies]
-pixi_py = { path = "packages/pixi_py", editable = true }
+electoralyze = { path = "packages/electoralyze", editable = true }
 
-[feature.dev.pypi-dependencies]
-pixi_py_copy = { path = "packages/pixi_py_copy", editable = true }
+[feature.ui.pypi-dependencies]
+ui = { path = "packages/ui", editable = true }
 
 [tasks]
-tests = "pytest -v packages/pixi_py/tests"
+tests = "pytest -v packages/electoralyze/tests"
 
 [feature.dev.tasks]
 test_all = "pytest -v packages"
