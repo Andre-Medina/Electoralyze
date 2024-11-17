@@ -2,7 +2,9 @@ from ui.common import create_app
 from ui.pages import Analytics, Archive, Home
 
 app = create_app(
-    name=__name__,
+    server_name=__name__,
+    site_name="Electoralyze",
+    site_colour="grape",
     pages=[Analytics, Home, Archive],
 )
 

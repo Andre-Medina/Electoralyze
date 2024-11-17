@@ -16,8 +16,6 @@ from ui.common.page import Page
 # Set new react version.
 dash._dash_renderer._set_react_version("18.2.0")  # type: ignore
 
-PRIMARY_COLOUR = "grape"
-
 
 class Scaffold(dmc.MantineProvider):
     """UI Scaffold, refer to init."""
@@ -34,24 +32,29 @@ class Scaffold(dmc.MantineProvider):
         store = _ID_STORE
         dummy = _ID_DUMMY
 
-    def __init__(self, name: str, pages: list[Page.__class__]):
+    def __init__(self, name: str, site_colour: str, pages: list[Page.__class__]):
         """Scaffold for the UI.
+
+        Creates the basic layout of every page including
+        - the nav bar (Will auto generate the nav bar from given pages.)
+        - theme toggle and
+        - container for page contents.
 
         Parameters
         ----------
         name: str, Name of the website.
         pages: list[Page], list of page classes with navigation info in them.
-
+        site_colour: str, primary colour for the site.
         """
         layout = html.Div(
             [
-                create_header(name=name, pages=pages),
+                create_header(name=name, pages=pages, site_colour=site_colour),
                 html.Hr(),
                 create_body(),
             ]
         )
 
-        theme = create_theme()
+        theme = create_theme(site_colour=site_colour)
 
         super().__init__(
             id=self.ids.scaffold,
@@ -60,15 +63,16 @@ class Scaffold(dmc.MantineProvider):
         )
 
 
-def create_header(name: str, pages: list[Page.__class__]) -> html.Header:
+def create_header(name: str, site_colour: str, pages: list[Page.__class__]) -> html.Header:
     """Creates the header bar for the Scaffold.
 
     Parameters
     ----------
     name: str, name of the site to put in the top right corner.
     pages: list[Page], list of pages to render as navigation buttons.
+    site_colour: str, primary colour for the site.
     """
-    logo = html.H3(html.A(name, href="/", style={"text-decoration": "none", "color": PRIMARY_COLOUR}))
+    logo = html.H3(html.A(name, href="/", style={"text-decoration": "none", "color": site_colour}))
 
     links = dmc.Group(
         [
@@ -154,10 +158,10 @@ def create_body() -> dmc.ScrollArea:
     return body
 
 
-def create_theme() -> dict:
+def create_theme(site_colour: str) -> dict:
     """Create theme as a dict, attributes will override existing `dmc.DEFAULT_THEME`."""
     # dmc.DEFAULT_THEME
 
-    theme = {"primaryColor": PRIMARY_COLOUR}
+    theme = {"primaryColor": site_colour}
 
     return theme
