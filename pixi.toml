@@ -13,12 +13,18 @@ electoralyze = { path = "packages/electoralyze", editable = true }
 
 [feature.ui.pypi-dependencies]
 ui = { path = "packages/ui", editable = true }
+dash-iconify = ">=0.1.2, <0.2"
 
 [tasks]
 tests = "pytest -v packages/electoralyze/tests"
 
 [feature.dev.tasks]
 test_all = "pytest -v packages"
+
+[feature.ui.dependencies]
+dash = ">=2.18.1,<3"
+flask-compress = "*"
+dash-mantine-components = ">=0.14.6,<0.15"
 
 [dependencies]
 rich = ">=13.9.3,<14"
