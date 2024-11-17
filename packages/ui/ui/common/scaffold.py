@@ -9,6 +9,7 @@ from dash.dash import (
 )
 from dash_iconify import DashIconify
 
+from ui.common import icon
 from ui.common.id import id
 from ui.common.page import Page
 
@@ -54,8 +55,23 @@ class Scaffold(dmc.MantineProvider):
 
 def create_header(name: str, pages: list[Page.__class__]) -> html.Header:
     """Creates the header bar for the page."""
-    logo = html.H1(html.A(name, href="/", style={"text-decoration": "none", "color": PRIMARY_COLOUR}))
-    links = dmc.Group([html.A(dmc.Button(children=page.label), href=page.path) for page in pages])
+    logo = html.H3(html.A(name, href="/", style={"text-decoration": "none", "color": PRIMARY_COLOUR}))
+
+    links = dmc.Group(
+        [
+            html.A(
+                dmc.Button(
+                    children=page.label,
+                    leftSection=None
+                    if page.icon is None
+                    else html.Div(DashIconify(icon=page.icon, height=16, width=16), style={"width": "16px"}),
+                ),
+                href=page.path,
+            )
+            for page in pages
+        ]
+    )
+
     theme_toggle = create_dark_mode_toggle()
 
     header = html.Header(
@@ -76,11 +92,8 @@ def create_header(name: str, pages: list[Page.__class__]) -> html.Header:
 def create_dark_mode_toggle():
     """Theme switch."""
     return dmc.Switch(
-        # offLabel=DashIconify(icon="iconoir:moon-sat", height=18),
-        # offLabel=DashIconify(icon="line-md:moon-simple", height=18),
-        offLabel=DashIconify(icon="line-md:moon-alt-loop", height=18),
-        # onLabel=DashIconify(icon="line-md:sunny-outline", height=18),
-        onLabel=DashIconify(icon="line-md:sunny-loop", height=18),
+        offLabel=DashIconify(icon=icon.moon, height=18),
+        onLabel=DashIconify(icon=icon.sun, height=18),
         size="lg",
         persistence=True,
         checked=True,

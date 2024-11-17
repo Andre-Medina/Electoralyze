@@ -1,6 +1,6 @@
 from dash import html
 
-from ui.common import Page
+from ui.common import Page, icon
 
 
 class Archive(Page):
@@ -8,6 +8,7 @@ class Archive(Page):
 
     path = "/archive"
     label = "Archive"
+    icon = icon.archive
 
     def __init__(self):
         """Archive page."""

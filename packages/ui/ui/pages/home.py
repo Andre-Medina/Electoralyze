@@ -1,6 +1,6 @@
 from dash import html
 
-from ui.common import Page
+from ui.common import Page, icon
 
 # dash.register_page(__name__, path='/')
 
@@ -10,6 +10,7 @@ class Home(Page):
 
     path = "/"
     label = "Home"
+    icon = icon.home
 
     def __init__(self):
         """Home page."""

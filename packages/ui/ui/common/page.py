@@ -8,6 +8,7 @@ class Page(dmc.Stack):
 
     path: str
     label: str
+    icon: str | None = None
 
     def __init__(self, children, *args, **kwargs):
         """Base Page class to organise pages with.

@@ -1,7 +1,7 @@
 import dash_mantine_components as dmc
 from dash import Input, Output, callback, dcc, html
 
-from ui.common import Page
+from ui.common import Page, icon
 
 
 class Analytics(Page):
@@ -9,6 +9,7 @@ class Analytics(Page):
 
     path = "/analytics"
     label = "Analytics"
+    icon = icon.analytics
 
     def __init__(self):
         """Page for Analytics."""
