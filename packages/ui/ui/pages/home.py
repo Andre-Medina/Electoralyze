@@ -2,8 +2,6 @@ from dash import html
 
 from ui.common import Page, icon
 
-# dash.register_page(__name__, path='/')
-
 
 class Home(Page):
     """Home page."""

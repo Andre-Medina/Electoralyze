@@ -13,12 +13,11 @@ def create_app(
     app = Dash(
         name,
         use_pages=True,
-        pages_folder="",
         compress=True,
         suppress_callback_exceptions=True,
-        external_stylesheets=dmc.styles.ALL,
+        pages_folder="",
         assets_url_path="/assets",
-        # routing_callback_inputs={"state": State(ids.state, "data")},
+        external_stylesheets=dmc.styles.ALL,  # type: ignore
     )
 
     app.layout = Scaffold(name="Electoralyze", pages=pages)

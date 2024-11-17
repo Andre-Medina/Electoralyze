@@ -9,6 +9,7 @@
         "clientside",
         "electoralyze",
         "mantine",
-        "pytests"
+        "pytests",
+        "Scrollbars"
     ]
 }

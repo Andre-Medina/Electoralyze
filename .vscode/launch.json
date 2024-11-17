@@ -11,7 +11,6 @@
             "module": "flask",
             "env": {
                 "FLASK_APP": "ui/app.py",
-                // "FLASK_APP": "/home/andre/git/private/electoralyze/packages/ui/ui/application.py",
                 "FLASK_DEBUG": "1"
             },
             "args": [
