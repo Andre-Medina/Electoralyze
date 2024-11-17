@@ -5,12 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Electrolyze UI",
+            "name": "Electoralyze UI",
             "type": "debugpy",
             "request": "launch",
             "module": "flask",
             "env": {
-                "FLASK_APP": "ui/application.py",
+                "FLASK_APP": "ui/app.py",
                 // "FLASK_APP": "/home/andre/git/private/electoralyze/packages/ui/ui/application.py",
                 "FLASK_DEBUG": "1"
             },

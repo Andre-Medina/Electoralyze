@@ -1,8 +1,8 @@
-from ui.common import create_application
+from ui.common import create_app
 from ui.pages import Analytics, Archive, Home
 
-app = create_application(
-    name="Electoralyze",
+app = create_app(
+    name=__name__,
     pages=[Analytics, Home, Archive],
 )
 

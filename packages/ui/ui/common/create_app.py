@@ -5,7 +5,7 @@ from ui.common.page import Page
 from ui.common.scaffold import Scaffold
 
 
-def create_application(
+def create_app(
     name: str,
     pages: list[Page.__class__],
 ) -> Dash:
@@ -17,10 +17,11 @@ def create_application(
         compress=True,
         suppress_callback_exceptions=True,
         external_stylesheets=dmc.styles.ALL,
+        assets_url_path="/assets",
         # routing_callback_inputs={"state": State(ids.state, "data")},
     )
 
-    app.layout = Scaffold(name=name, pages=pages)
+    app.layout = Scaffold(name="Electoralyze", pages=pages)
 
     for page in pages:
         register_page(page.label, path=page.path, layout=page)
