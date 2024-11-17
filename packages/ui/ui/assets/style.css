@@ -1,3 +1,14 @@
+:root[data-mantine-color-scheme='light'] {
+    --header-background: var(--mantine-color-gray-2);
+    --header-site-title: var(--mantine-primary-color-6);
+}
+:root[data-mantine-color-scheme='dark'] {
+    --header-background: var(--mantine-color-dark-7);
+    --header-site-title: var(--mantine-primary-color-4);
+}
+body {
+  --topbar-height: 5vh;
+}
 ._dash-loading {
     display: none;
   }
