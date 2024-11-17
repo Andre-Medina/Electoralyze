@@ -1,7 +1,7 @@
 import dash_leaflet as dl
 
 # import dash_mantine_components as dmc
-from dash import Input, Output, clientside_callback  # , dcc, html
+from dash import Input, Output, clientside_callback, html
 
 from ui.common import Page, Scaffold, icon, id
 
@@ -18,6 +18,9 @@ MAP_TILES_DARK = "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}{r}.png"
 # url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
 # url="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 
+INITIAL_COORDS = (-27.5, 134)
+INITIAL_ZOOM = 5
+
 
 class Map(Page):
     """Page for Maps."""
@@ -33,31 +36,56 @@ class Map(Page):
         map = id(page="map", section="map", component="map")
         tooltip = id(page="map", section="map", component="tooltip")
         tile_layer = id(page="map", section="map", component="tile_layer")
-        colorbar = id(page="map", section="map", component="colorbar")
-        geojson_highlight = id(page="map", section="map", component="geojson_highlight")
-        geojson_layer = id(page="map", section="map", component="geojson_layer")
-        loader = id(page="map", section="loader", component="loader")
-        drawer = id(page="map", section="drawer", component="drawer")
+        colour_bar = id(page="map", section="map", component="colour_bar")
+        highlight_layer = id(page="map", section="map", component="highlight_layer")
+        geo_json_layer = id(page="map", section="map", component="geo_json_layer")
 
     def __init__(self):
         """Page for maps."""
-        super().__init__(
+        tile_layer = dl.TileLayer(
+            url=MAP_TILES_LIGHT,
+            attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> ',
+            id=self.ids.tile_layer,
+        )
+
+        geo_json_layer = dl.GeoJSON(
+            children=dl.Tooltip(id=self.ids.tooltip),
+            id=self.ids.geo_json_layer,
+        )
+
+        highlight_layer = dl.Pane(
+            dl.GeoJSON(
+                id=self.ids.highlight_layer,
+                style={"weight": 3, "color": "black", "fillOpacity": 0},
+                interactive=False,
+            ),
+            name="highlight",
+            style={"pointerEvents": "none"},
+        )
+
+        colour_bar = html.Div(id=self.ids.colour_bar, style={"position": "absolute"})
+
+        layout = html.Div(
             dl.Map(
-                dl.TileLayer(
-                    url=MAP_TILES_LIGHT,
-                    attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> ',
-                    id=self.ids.tile_layer,
-                ),
-                center=[56, 10],
-                zoom=6,
+                children=[
+                    tile_layer,
+                    geo_json_layer,
+                    highlight_layer,
+                    colour_bar,
+                ],
+                center=INITIAL_COORDS,
+                zoom=INITIAL_ZOOM,
                 zoomControl=False,
                 style={
                     "height": "calc(100vh - var(--topbar-height))",
                     "maxHeight": "100%",
                     "zIndex": 0,
                 },
-            )
+            ),
+            style={"flex": 1},
         )
+
+        super().__init__(layout)
 
 
 # @callback(Output("analytics-output", "children"), Input("analytics-input", "value"))
