@@ -3,12 +3,27 @@
     --header-site-title: var(--mantine-primary-color-6);
 }
 :root[data-mantine-color-scheme='dark'] {
-    --header-background: var(--mantine-color-dark-7);
+    --header-background: var(--mantine-color-dark-8);
     --header-site-title: var(--mantine-primary-color-4);
 }
 body {
-  --topbar-height: 5vh;
+  --topbar-height: 7vh;
 }
 ._dash-loading {
     display: none;
-  }
+}
+
+
+.map-legend {
+  position: fixed;
+  top: calc(var(--topbar-height) + 1rem);
+  right: 1rem;
+  border-radius: 4px;
+  background-color: var(--mantine-color-body);
+  overflow: visible;
+  border-bottom: 0px;
+}
+
+.map-legend .mantine-Accordion-item {
+  border-color: transparent;
+}

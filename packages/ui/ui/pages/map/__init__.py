@@ -1,9 +1,12 @@
+from enum import Enum
+
 import dash_leaflet as dl
 import dash_mantine_components as dmc
 import geojson
 import requests
 from dash import Input, Output, callback, clientside_callback, html
 from dash_extensions.javascript import arrow_function
+from dash_iconify import DashIconify
 
 from ui.common import Page, Scaffold, icon, id
 
@@ -23,6 +26,28 @@ MAP_DISTRIBUTION = '&copy; <a href="https://www.jawg.io/en/">Jawg Maps</a> '
 
 INITIAL_COORDS = (-27.5, 134)
 INITIAL_ZOOM = 5
+
+
+class ZIndex(int, Enum):
+    """Enum for ZIndexs."""
+
+    BASE_MAP = 0
+    CONTROL_LEGEND = 1
+    CONTROL_DROPDOWNS = 2
+
+
+class DataExtra(str, Enum):
+    """Enum for dummy data options."""
+
+    EXTRA = "extra"
+    MORE = "more"
+
+
+class DataSource(str, Enum):
+    """Enum for data source."""
+
+    COUNTRY = "countries"
+    STATE = "states"
 
 
 class Map(Page):
@@ -46,6 +71,9 @@ class Map(Page):
         page_loaded = id(page="map", section="loader", component="button")
         loader = id(page="map", section="loader", component="loader")
 
+        data_source = id(page="map", section="controls", component="data_source")
+        data_extra = id(page="map", section="controls", component="data_extra")
+
     def __init__(self):
         """Page for maps."""
         tile_layer = dl.TileLayer(
@@ -63,25 +91,66 @@ class Map(Page):
 
         colour_bar = html.Div(id=self.ids.colour_bar, style={"position": "absolute"})
 
-        layout = [
-            html.Div(
-                dl.Map(
-                    children=[
-                        tile_layer,
-                        geojson_layer,
-                        colour_bar,
-                    ],
-                    center=INITIAL_COORDS,
-                    zoom=INITIAL_ZOOM,
-                    zoomControl=False,
-                    style={
-                        "height": "calc(100vh - var(--topbar-height))",
-                        "maxHeight": "100%",
-                        "zIndex": 0,
-                    },
-                ),
-                style={"flex": 1},
+        map_layout = html.Div(
+            dl.Map(
+                children=[
+                    tile_layer,
+                    geojson_layer,
+                    colour_bar,
+                ],
+                center=INITIAL_COORDS,
+                zoom=INITIAL_ZOOM,
+                zoomControl=False,
+                style={
+                    "height": "calc(100vh - var(--topbar-height))",
+                    "maxHeight": "100%",
+                    "zIndex": ZIndex.BASE_MAP,
+                },
             ),
+            style={"flex": 1},
+        )
+
+        controls = [
+            dmc.Select(
+                id=self.ids.data_source,
+                label="Data displayed",
+                data=[x.value for x in DataSource],
+                persistence=True,
+                value="Peak",
+                leftSection=DashIconify(icon=icon.analytics, height=19),
+                comboboxProps={"position": "bottom", "zIndex": ZIndex.CONTROL_DROPDOWNS},
+            ),
+            dmc.Select(
+                id=self.ids.data_extra,
+                label="Other option",
+                data=[{"value": s.value, "label": s.value.capitalize()} for s in DataExtra],
+                persistence=True,
+                value="extra",
+                comboboxProps={"position": "bottom", "zIndex": ZIndex.CONTROL_DROPDOWNS},
+            ),
+        ]
+
+        controls_legend = dmc.Accordion(
+            value="legend",
+            disableChevronRotation=True,
+            styles={
+                "panel": {"display": "flex", "flexDirection": "column", "gap": "1rem", "zIndex": ZIndex.CONTROL_LEGEND}
+            },
+            style={"zIndex": ZIndex.CONTROL_LEGEND},
+            className="map-legend",
+            children=dmc.AccordionItem(
+                style={"zIndex": ZIndex.CONTROL_LEGEND},
+                value="legend",
+                children=[
+                    dmc.AccordionControl("", chevron=DashIconify(icon="gg:menu-right", height=20)),
+                    dmc.AccordionPanel(controls),
+                ],
+            ),
+        )
+
+        layout = [
+            map_layout,
+            controls_legend,
             html.Div(dmc.Loader(), id=self.ids.loader, className="map-loader"),
             dmc.Button(id=self.ids.page_loaded, style={"display": "none"}),
         ]
@@ -125,25 +194,35 @@ def fetch_geojson(url):
 @callback(
     Output(Map.ids.geojson_layer, "data"),
     Input(Map.ids.page_loaded, "n_clicks"),
+    Input(Map.ids.data_source, "value"),
+    Input(Map.ids.data_extra, "value"),
     running=[(Output(Map.ids.loader, "className"), "map-loader visible", "map-loader")],
 )
-def update_map_data(*_) -> dict:
+def update_map_data(_n_clicks, data_source, data_extra) -> dict:
     """Update map data when page loads."""
-    import time
+    match data_source:
+        case DataSource.STATE:
+            geo_url = "https://raw.githubusercontent.com/rowanhogan/australian-states/refs/heads/master/states.geojson"
+            name_prop = "STATE_NAME"
 
-    time.sleep(1)  # simulate loading
-    geojson_url = "https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson"
-    geojson_data = fetch_geojson(geojson_url)
+        case DataSource.COUNTRY:
+            geo_url = "https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson"
+            name_prop = "name"
+        case _:
+            raise ValueError("bad data.")
+
+    geojson_data = fetch_geojson(geo_url)
 
     for feature in geojson_data["features"]:
-        if "properties" in feature and "name" in feature["properties"]:
-            feature["name"] = feature["properties"]["name"]
+        if "properties" in feature and name_prop in feature["properties"]:
+            feature["name"] = feature["properties"][name_prop]
+            feature["data_extra"] = data_extra
 
     return geojson_data
 
 
 clientside_callback(
-    """(hoverData) =>  hoverData == null ? null: hoverData.name;""",
+    """(hoverData) =>  hoverData == null ? null: `${hoverData.name}: ${hoverData.data_extra}`;""",
     Output(Map.ids.tooltip, "children"),
     Input(Map.ids.geojson_layer, "hoverData"),
 )
