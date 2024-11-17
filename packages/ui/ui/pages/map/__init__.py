@@ -4,7 +4,7 @@ import dash_leaflet as dl
 import dash_mantine_components as dmc
 import geojson
 import requests
-from dash import Input, Output, callback, clientside_callback, html
+from dash import ClientsideFunction, Input, Output, callback, clientside_callback, html
 from dash_extensions.javascript import arrow_function
 from dash_iconify import DashIconify
 
@@ -116,16 +116,18 @@ class Map(Page):
                 label="Data displayed",
                 data=[x.value for x in DataSource],
                 persistence=True,
-                value="Peak",
+                value=DataSource.COUNTRY,
                 leftSection=DashIconify(icon=icon.analytics, height=19),
                 comboboxProps={"position": "bottom", "zIndex": ZIndex.CONTROL_DROPDOWNS},
+                allowDeselect=False,
             ),
             dmc.Select(
                 id=self.ids.data_extra,
+                allowDeselect=False,
                 label="Other option",
                 data=[{"value": s.value, "label": s.value.capitalize()} for s in DataExtra],
                 persistence=True,
-                value="extra",
+                value=DataExtra.MORE,
                 comboboxProps={"position": "bottom", "zIndex": ZIndex.CONTROL_DROPDOWNS},
             ),
         ]
@@ -222,7 +224,7 @@ def update_map_data(_n_clicks, data_source, data_extra) -> dict:
 
 
 clientside_callback(
-    """(hoverData) =>  hoverData == null ? null: `${hoverData.name}: ${hoverData.data_extra}`;""",
+    ClientsideFunction(namespace="ui", function_name="mapLabel"),
     Output(Map.ids.tooltip, "children"),
     Input(Map.ids.geojson_layer, "hoverData"),
 )
