@@ -1,13 +1,16 @@
 import dash_leaflet as dl
-
-# import dash_mantine_components as dmc
-from dash import Input, Output, clientside_callback, html
+import dash_mantine_components as dmc
+import geojson
+import requests
+from dash import Input, Output, callback, clientside_callback, html
+from dash_extensions.javascript import arrow_function
 
 from ui.common import Page, Scaffold, icon, id
 
 # Had API key in URL but works fine without?
 MAP_TILES_LIGHT = "https://tile.jawg.io/jawg-light/{z}/{x}/{y}{r}.png"
 MAP_TILES_DARK = "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}{r}.png"
+MAP_DISTRIBUTION = '&copy; <a href="https://www.jawg.io/en/">Jawg Maps</a> '
 # 'https://tile.jawg.io/jawg-matrix/{z}/{x}/{y}{r}.png',
 
 # These looked good, but slow to load without API key
@@ -38,52 +41,49 @@ class Map(Page):
         tile_layer = id(page="map", section="map", component="tile_layer")
         colour_bar = id(page="map", section="map", component="colour_bar")
         highlight_layer = id(page="map", section="map", component="highlight_layer")
-        geo_json_layer = id(page="map", section="map", component="geo_json_layer")
+        geojson_layer = id(page="map", section="map", component="geojson_layer")
+
+        page_loaded = id(page="map", section="loader", component="button")
+        loader = id(page="map", section="loader", component="loader")
 
     def __init__(self):
         """Page for maps."""
         tile_layer = dl.TileLayer(
             url=MAP_TILES_LIGHT,
-            attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> ',
+            attribution=MAP_DISTRIBUTION,
             id=self.ids.tile_layer,
         )
 
-        geo_json_layer = dl.GeoJSON(
+        geojson_layer = dl.GeoJSON(
             children=dl.Tooltip(id=self.ids.tooltip),
-            id=self.ids.geo_json_layer,
-        )
-
-        highlight_layer = dl.Pane(
-            dl.GeoJSON(
-                id=self.ids.highlight_layer,
-                style={"weight": 3, "color": "black", "fillOpacity": 0},
-                interactive=False,
-            ),
-            name="highlight",
-            style={"pointerEvents": "none"},
+            id=self.ids.geojson_layer,
+            hoverStyle=arrow_function({"weight": 5, "color": "#666", "dashArray": ""}),
         )
 
         colour_bar = html.Div(id=self.ids.colour_bar, style={"position": "absolute"})
 
-        layout = html.Div(
-            dl.Map(
-                children=[
-                    tile_layer,
-                    geo_json_layer,
-                    highlight_layer,
-                    colour_bar,
-                ],
-                center=INITIAL_COORDS,
-                zoom=INITIAL_ZOOM,
-                zoomControl=False,
-                style={
-                    "height": "calc(100vh - var(--topbar-height))",
-                    "maxHeight": "100%",
-                    "zIndex": 0,
-                },
+        layout = [
+            html.Div(
+                dl.Map(
+                    children=[
+                        tile_layer,
+                        geojson_layer,
+                        colour_bar,
+                    ],
+                    center=INITIAL_COORDS,
+                    zoom=INITIAL_ZOOM,
+                    zoomControl=False,
+                    style={
+                        "height": "calc(100vh - var(--topbar-height))",
+                        "maxHeight": "100%",
+                        "zIndex": 0,
+                    },
+                ),
+                style={"flex": 1},
             ),
-            style={"flex": 1},
-        )
+            html.Div(dmc.Loader(), id=self.ids.loader, className="map-loader"),
+            dmc.Button(id=self.ids.page_loaded, style={"display": "none"}),
+        ]
 
         super().__init__(layout)
 
@@ -105,3 +105,54 @@ clientside_callback(
     Output(Map.ids.tile_layer, "url"),
     Input(Scaffold.ids.dark_mode_toggle, "checked"),
 )
+
+
+def fetch_geojson(url):
+    """
+    Fetches a GeoJSON file from the web and parses it.
+
+    :param url: URL of the GeoJSON file
+    :return: Parsed GeoJSON data
+    """
+    try:
+        response = requests.get(url)  # noqa S113
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = geojson.loads(response.text)
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching GeoJSON: {e}")
+        return None
+    except geojson.GeoJSONDecodeError as e:
+        print(f"Error decoding GeoJSON: {e}")
+        return None
+
+
+@callback(
+    Output(Map.ids.geojson_layer, "data"),
+    Input(Map.ids.page_loaded, "n_clicks"),
+    running=[(Output(Map.ids.loader, "className"), "map-loader visible", "map-loader")],
+)
+def update_map_data(*_) -> dict:
+    """Update map data when page loads."""
+    import time
+
+    time.sleep(1)  # simulate loading
+    geojson_url = "https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson"
+    geojson_data = fetch_geojson(geojson_url)
+    return geojson_data
+
+
+# clientside_callback(
+#     """(hoverData) =>
+#     (!hoverData || !hoverData.properties || !hoverData.properties.name) ? null : hoverData.properties.name;
+#     )""",
+@callback(
+    Output(Map.ids.tooltip, "children"),
+    Input(Map.ids.geojson_layer, "hoverData"),
+)
+def update_tool_tip(hover_data):
+    """Update the tool tip on the plot."""
+    if hover_data is None:
+        return ""
+
+    return hover_data["properties"]["name"]
