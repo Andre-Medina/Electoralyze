@@ -15,6 +15,8 @@ from ui.common.page import Page
 # Set new react version.
 dash._dash_renderer._set_react_version("18.2.0")
 
+PRIMARY_COLOUR = "grape"
+
 
 class Scaffold(dmc.MantineProvider):
     """UI Scaffold, refer to init."""
@@ -41,15 +43,18 @@ class Scaffold(dmc.MantineProvider):
             ]
         )
 
+        theme = create_theme()
+
         super().__init__(
             id=self.ids.scaffold,
             children=layout,
+            theme=theme,
         )
 
 
 def create_header(name: str, pages: list[Page.__class__]) -> html.Header:
     """Creates the header bar for the page."""
-    logo = html.H1(html.A(name, href="/", style={"text-decoration": "none"}))
+    logo = html.H1(html.A(name, href="/", style={"text-decoration": "none", "color": PRIMARY_COLOUR}))
     links = dmc.Group([html.A(dmc.Button(children=page.label), href=page.path) for page in pages])
     theme_toggle = create_dark_mode_toggle()
 
@@ -72,8 +77,8 @@ def create_dark_mode_toggle():
     """Theme switch."""
     return dmc.Switch(
         # offLabel=DashIconify(icon="iconoir:moon-sat", height=18),
-        offLabel=DashIconify(icon="line-md:moon-alt-loop", height=18),
         # offLabel=DashIconify(icon="line-md:moon-simple", height=18),
+        offLabel=DashIconify(icon="line-md:moon-alt-loop", height=18),
         # onLabel=DashIconify(icon="line-md:sunny-outline", height=18),
         onLabel=DashIconify(icon="line-md:sunny-loop", height=18),
         size="lg",
@@ -115,3 +120,12 @@ def create_body() -> dmc.ScrollArea:
         id="content-scroll",
     )
     return body
+
+
+def create_theme() -> dict:
+    """Create theme as a dict, attributes will override existing `dmc.DEFAULT_THEME`."""
+    # dmc.DEFAULT_THEME
+
+    theme = {"primaryColor": PRIMARY_COLOUR}
+
+    return theme
