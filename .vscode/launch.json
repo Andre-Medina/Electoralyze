@@ -11,12 +11,13 @@
             "module": "flask",
             "env": {
                 "FLASK_APP": "ui/app.py",
-                "FLASK_DEBUG": "1"
+                "FLASK_DEBUG": "1",
+                "DEBUG": "1",
             },
             "args": [
                 "run",
                 "--no-debugger",
-                "--no-reload"
+                "--no-reload",
             ],
             "jinja": true,
             "autoStartBrowser": false,

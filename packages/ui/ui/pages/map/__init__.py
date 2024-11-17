@@ -58,6 +58,7 @@ class Map(Page):
             children=dl.Tooltip(id=self.ids.tooltip),
             id=self.ids.geojson_layer,
             hoverStyle=arrow_function({"weight": 5, "color": "#666", "dashArray": ""}),
+            style={"weight": 5, "color": "purple", "dashArray": ""},
         )
 
         colour_bar = html.Div(id=self.ids.colour_bar, style={"position": "absolute"})
@@ -86,12 +87,6 @@ class Map(Page):
         ]
 
         super().__init__(layout)
-
-
-# @callback(Output("analytics-output", "children"), Input("analytics-input", "value"))
-# def update_city_selected(input_value):
-#     """Callback for updating cities."""
-#     return f"You selected: {input_value}"
 
 
 # TODO: Add fly to regions
@@ -139,20 +134,16 @@ def update_map_data(*_) -> dict:
     time.sleep(1)  # simulate loading
     geojson_url = "https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson"
     geojson_data = fetch_geojson(geojson_url)
+
+    for feature in geojson_data["features"]:
+        if "properties" in feature and "name" in feature["properties"]:
+            feature["name"] = feature["properties"]["name"]
+
     return geojson_data
 
 
-# clientside_callback(
-#     """(hoverData) =>
-#     (!hoverData || !hoverData.properties || !hoverData.properties.name) ? null : hoverData.properties.name;
-#     )""",
-@callback(
+clientside_callback(
+    """(hoverData) =>  hoverData == null ? null: hoverData.name;""",
     Output(Map.ids.tooltip, "children"),
     Input(Map.ids.geojson_layer, "hoverData"),
 )
-def update_tool_tip(hover_data):
-    """Update the tool tip on the plot."""
-    if hover_data is None:
-        return ""
-
-    return hover_data["properties"]["name"]
