@@ -10,6 +10,10 @@ default = { features = ["dev", "ui"], solve-group = "default"}
 
 [pypi-dependencies]
 electoralyze = { path = "packages/electoralyze", editable = true }
+polars-st = ">=0.1.0a9, <0.2"
+pyogrio = ">=0.10.0,<0.11"  # Get import error if installed by conda
+geopandas = ">=1.0.1,<2"
+pytz = ">=2024.1,<2025"
 
 [feature.ui.pypi-dependencies]
 ui = { path = "packages/ui", editable = true }
@@ -29,8 +33,15 @@ dash-leaflet = ">=1.0.15,<2"
 geojson = ">=3.1.0,<4"
 dash-extensions = ">=1.0.8,<2"
 
+[feature.dev.dependencies]
+altair = ">=5.4.1,<6"
+folium = ">=0.18.0,<0.19"
+matplotlib = ">=3.9.2,<4"
+mapclassify = ">=2.8.1,<3"
+
 [dependencies]
 rich = ">=13.9.3,<14"
 pytest = "*"
 pre-commit = ">=4.0.1,<5"
 ipykernel = ">=6.29.5,<7"
+pyarrow = ">=18.0.0,<19"
