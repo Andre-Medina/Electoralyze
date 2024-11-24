@@ -85,14 +85,16 @@ class RegionABC(ABC):
         geometry_raw = cls.get_raw_geometry()
         metadata = cls.get_raw_metadata()
 
-        geometry = geometry_raw.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE)).pipe(to_gpd_gdf)
+        geometry = geometry_raw.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE)).pipe(
+            to_gpd_gdf
+        )
 
         print("Saving...")
-        
-        os.makedirs(cls.geometry_file.rsplit("/", maxsplit =1)[0], exist_ok=True)
+
+        os.makedirs(cls.geometry_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
         geometry.to_parquet(cls.geometry_file)
-        
-        os.makedirs(cls.metadata_file.rsplit("/", maxsplit =1)[0], exist_ok=True)
+
+        os.makedirs(cls.metadata_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
         metadata.write_parquet(cls.metadata_file)
 
         print("Done!")

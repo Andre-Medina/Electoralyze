@@ -1,10 +1,12 @@
 import os
 import shutil
 import tempfile
+from typing import Literal
 
 import polars as pl
 import polars_st as st
 import pytest
+from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_gpd_gdf
 from electoralyze.region.region_abc import RegionABC
@@ -31,6 +33,8 @@ REGION_B_JSON = {
         "POLYGON ((1 -1, 0 1, 2 1, 1 -1))",
     ],
 }
+
+REGIONS = Literal["region_a", "region_b"]
 
 
 class RegionMocked:
@@ -125,3 +129,43 @@ def region():
     yield region_class
 
     shutil.rmtree(temp_dir.name)
+
+
+def read_true_geometry(region_id: REGIONS, /, *, raw: bool = False) -> st.GeoDataFrame:
+    """Read true geometry from raws."""
+    match region_id:
+        case "region_a":
+            region_json = REGION_A_JSON
+        case "region_b":
+            region_json = REGION_B_JSON
+        case _:
+            raise ValueError(f"Unknown region {region_id}")
+
+    geometry_raw = st.GeoDataFrame(region_json).select(region_id, "geometry")
+
+    if raw:
+        return geometry_raw
+
+    geometry = geometry_raw.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE))
+    return geometry
+
+
+def read_true_metadata(region_id: REGIONS, /) -> pl.DataFrame:
+    """Read true metadata from raws."""
+    match region_id:
+        case "region_a":
+            region_json = REGION_A_JSON
+            region_name = "region_a_name"
+        case "region_b":
+            region_json = REGION_B_JSON
+            region_name = "region_b_name"
+        case _:
+            raise ValueError(f"Unknown region {region_id}")
+
+    metadata_raw = (
+        st.GeoDataFrame(region_json)
+        .select(region_id, region_name, "extra")
+        .with_columns(pl.col("extra").cast(pl.Int32))
+    )
+
+    return metadata_raw
