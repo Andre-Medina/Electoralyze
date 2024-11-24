@@ -23,7 +23,7 @@ class Scaffold(dmc.MantineProvider):
     class ids:
         """Ids for the scaffold."""
 
-        theme_toggle = id(page="scaffold", section="nav_bar", component="theme_toggle")
+        dark_mode_toggle = id(page="scaffold", section="nav_bar", component="dark_mode_toggle")
         scaffold = id(page="scaffold", section="scaffold")
         loading_overlay = id(page="scaffold", section="loading_overlay")
 
@@ -48,8 +48,7 @@ class Scaffold(dmc.MantineProvider):
         """
         layout = html.Div(
             [
-                create_header(name=name, pages=pages, site_colour=site_colour),
-                html.Hr(),
+                create_header(name=name, pages=pages),
                 create_body(),
             ]
         )
@@ -63,16 +62,15 @@ class Scaffold(dmc.MantineProvider):
         )
 
 
-def create_header(name: str, site_colour: str, pages: list[Page.__class__]) -> html.Header:
+def create_header(name: str, pages: list[Page.__class__]) -> html.Header:
     """Creates the header bar for the Scaffold.
 
     Parameters
     ----------
     name: str, name of the site to put in the top right corner.
     pages: list[Page], list of pages to render as navigation buttons.
-    site_colour: str, primary colour for the site.
     """
-    logo = html.H3(html.A(name, href="/", style={"text-decoration": "none", "color": site_colour}))
+    logo = html.H3(html.A(name, href="/", style={"text-decoration": "none", "color": "var(--header-site-title)"}))
 
     links = dmc.Group(
         [
@@ -100,6 +98,7 @@ def create_header(name: str, site_colour: str, pages: list[Page.__class__]) -> h
             "display": "flex",
             "alignItems": "center",
             "justifyContent": "space-between",
+            "background-color": "var(--header-background)",
         },
     )
 
@@ -114,14 +113,14 @@ def create_dark_mode_toggle():
         size="lg",
         persistence=True,
         checked=True,
-        id=Scaffold.ids.theme_toggle,
+        id=Scaffold.ids.dark_mode_toggle,
     )
 
 
 clientside_callback(
-    """(isLightMode) => isLightMode ? 'light' : 'dark'""",
+    "(isLightMode) => isLightMode ? 'light' : 'dark'",
     Output(Scaffold.ids.scaffold, "forceColorScheme"),
-    Input(Scaffold.ids.theme_toggle, "checked"),
+    Input(Scaffold.ids.dark_mode_toggle, "checked"),
     prevent_initial_callback=True,
 )
 
@@ -154,6 +153,11 @@ def create_body() -> dmc.ScrollArea:
         type="auto",
         children=[body_contents],
         id="content-scroll",
+        style={
+            "minHeight": "100%",
+            "maxHeight": "calc(100vh - var(--topbar-height))",
+            "overflow": "hidden",
+        },
     )
     return body
 

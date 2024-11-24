@@ -24,3 +24,8 @@ root = "../.."
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[project.entry-points.pytest11]
+region_fixture = "electoralyze.common.testing.region_fixture"
+census_fixture = "electoralyze.common.testing.census_fixture"
+election_fixture = "electoralyze.common.testing.election_fixture"

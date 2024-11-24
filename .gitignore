@@ -20,3 +20,15 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+
+*.Zone.Identifier
+data/raw/**/*.csv
+data/raw/**/*.gpkg
+data/raw/**/*.shp
+data/raw/**/*.dpf
+# !data/raw/census/2021/2021 Census GCP All Geographies for AUS/SA1/AUS/2021Census_G03_AUST_SA1.csv
+data/raw/**/*.xlsx
+
+
+**/temp/*
