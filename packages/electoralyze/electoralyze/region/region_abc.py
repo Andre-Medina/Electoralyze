@@ -82,16 +82,17 @@ class RegionABC(ABC):
     @classmethod
     def process_raw(cls):
         """Extract and process raw data."""
-        geometry = cls.get_raw_geometry()
+        geometry_raw = cls.get_raw_geometry()
         metadata = cls.get_raw_metadata()
 
-        print("Saving...")
+        geometry = geometry_raw.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE)).pipe(to_gpd_gdf)
 
-        (
-            geometry.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE))
-            .pipe(to_gpd_gdf)
-            .to_parquet(cls.geometry_file)
-        )
+        print("Saving...")
+        
+        os.makedirs(cls.geometry_file.rsplit("/", maxsplit =1)[0], exist_ok=True)
+        geometry.to_parquet(cls.geometry_file)
+        
+        os.makedirs(cls.metadata_file.rsplit("/", maxsplit =1)[0], exist_ok=True)
         metadata.write_parquet(cls.metadata_file)
 
         print("Done!")
