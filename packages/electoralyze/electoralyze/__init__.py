@@ -1,8 +1,8 @@
 from electoralyze.hello import say_hello
 
+from . import region
 from .common import constants
-from .region.region import Region
 
-__all__ = ["Region", "constants"]
+__all__ = ["region", "constants"]
 
 __all__ = ["say_hello"]
