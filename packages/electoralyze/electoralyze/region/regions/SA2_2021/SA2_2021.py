@@ -28,9 +28,9 @@ class SA2_2021(RegionABC):
         raw_geometry_file = os.path.join(ROOT_DIR, "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp")
         return raw_geometry_file
 
+
     @classmethod
-    @cached(TTLCache(maxsize=1, ttl=300))
-    def _get_geometry_with_metadata(cls) -> st.GeoDataFrame:
+    def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
         """Transform data from raw shape.
 
         Returns
@@ -57,8 +57,6 @@ class SA2_2021(RegionABC):
         └───────────┴────────────────────────────┴─────────────────────────────────┘
         ```
         """
-        geometry_raw = cls._get_geometry_raw()
-
         geometry_filtered = geometry_raw.filter(~pl.col("SA2_CODE21").str.starts_with("Z")).select(
             pl.col("SA2_CODE21").cast(pl.Int64).alias(cls.id),
             pl.col("SA2_NAME21").cast(pl.String).alias(cls.name),

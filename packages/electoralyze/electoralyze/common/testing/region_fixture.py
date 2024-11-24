@@ -82,12 +82,11 @@ def region():
             geometry_file = geometry_file_.format(region=self.id)
             return geometry_file
 
-        @classmethod
-        def _get_geometry_with_metadata(cls) -> st.GeoDataFrame:
-            """Structure data."""
-            geometry_raw = cls._get_geometry_raw()
 
-            geometry_raw = geometry_raw.select(
+        @classmethod
+        def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:            
+            """Structure data."""
+            geometry_with_metadata = geometry_raw.select(
                 pl.col(cls.id),
                 pl.struct(
                     pl.col(cls.name[0:10]).alias(cls.name),
@@ -96,7 +95,7 @@ def region():
                 pl.col("geometry"),
             )
 
-            return geometry_raw
+            return geometry_with_metadata
 
     class RegionA(RegionMockedABC):
         """RegionA for testing."""

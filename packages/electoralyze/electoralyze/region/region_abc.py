@@ -82,6 +82,7 @@ class RegionABC(ABC):
     @classmethod
     def process_raw(cls):
         """Extract and process raw data."""
+        print("Loading raw...")
         geometry_raw = cls.get_raw_geometry()
         metadata = cls.get_raw_metadata()
 
@@ -115,19 +116,23 @@ class RegionABC(ABC):
 
     @classmethod
     @cached(TTLCache(maxsize=1, ttl=300))
-    @abstractmethod
     def _get_geometry_with_metadata(cls) -> st.GeoDataFrame:
         """Transform data from raw shape.
 
         Returns
         -------
-        st.GeoDataFrame: Processed
+        st.GeoDataFrame: Processed geometry data with three columns.
+        - id columns: column with unique id for each row
+        - geometry: geometries for each id
+        - metadata: pl.struct column with any number of sub columns. metadata for each geometry.
+
+        E.g.
         ```
         shape: (2_472, 3)
         ┌───────────┬────────────────────────────┬─────────────────────────────────┐
         │ SA2_2021  ┆ metadata                   ┆ geometry                        │
         │ ---       ┆ ---                        ┆ ---                             │
-        │ i64       ┆ struct[1]                  ┆ str                             │
+        │ i64       ┆ struct[1]                  ┆ binary                          │
         ╞═══════════╪════════════════════════════╪═════════════════════════════════╡
         │ 119011656 ┆ {"Greenacre - South"}      ┆ POLYGON ((151.055825 -33.91691… │
         │ 101041017 ┆ {"Batemans Bay"}           ┆ POLYGON ((150.179359 -35.75046… │
@@ -143,8 +148,26 @@ class RegionABC(ABC):
         └───────────┴────────────────────────────┴─────────────────────────────────┘
         ```
         """
+        print("Extracting...")
+        geometry_raw = cls._get_geometry_raw()
         print("Transforming...")
+        geometry = cls._transform_geometry_raw(geometry_raw)
+        return geometry
+
+    @classmethod
+    @abstractmethod
+    def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
+        """Abstract function to be overwritten by child classes. Transforms raw geometry into geometry with metadata.
+        
+        Returns
+        -------
+        st.GeoDataFrame: Processed geometry data with three columns.
+        - id columns: column with unique id for each row
+        - geometry: geometries for each id
+        - metadata: pl.struct column with any number of sub columns. metadata for each geometry.        
+        """
         pass
+
 
     @classmethod
     def _get_geometry_raw(cls) -> st.GeoDataFrame:
@@ -154,7 +177,6 @@ class RegionABC(ABC):
         -------
         st.GeoDataFrame: In any format with any number columns. Should be accepted by `.transform`.
         """
-        print("Extracting...")
         geometry_raw_gpd = pyogrio.read_dataframe(cls.raw_geometry_file)
         geometry_raw_st = to_st_gdf(geometry_raw_gpd)
         return geometry_raw_st
