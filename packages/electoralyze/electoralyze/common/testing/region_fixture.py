@@ -1,5 +1,4 @@
 import os
-import shutil
 import tempfile
 from typing import Literal
 
@@ -51,83 +50,80 @@ class RegionMocked:
 @pytest.fixture(scope="module")
 def region():
     """Fixture to create a region."""
-    temp_dir = tempfile.TemporaryDirectory(delete=False)
-    region_a_shape = f"{temp_dir.name}/raw_geometry/data_a/shape.shp"
-    region_b_shape = f"{temp_dir.name}/raw_geometry/data_b/shape.shp"
-    metadata_file_ = f"{temp_dir.name}" + "/metadata/{region}.parquet"
-    geometry_file_ = f"{temp_dir.name}" + "/geometry/{region}.parquet"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        region_a_shape = f"{temp_dir}/raw_geometry/data_a/shape.shp"
+        region_b_shape = f"{temp_dir}/raw_geometry/data_b/shape.shp"
+        metadata_file_ = f"{temp_dir}" + "/metadata/{region}.parquet"
+        geometry_file_ = f"{temp_dir}" + "/geometry/{region}.parquet"
 
-    os.makedirs(f"{temp_dir.name}/raw_geometry/data_a", exist_ok=True)
-    os.makedirs(f"{temp_dir.name}/raw_geometry/data_b", exist_ok=True)
-    os.makedirs(f"{temp_dir.name}/metadata", exist_ok=True)
-    os.makedirs(f"{temp_dir.name}/geometry", exist_ok=True)
+        os.makedirs(f"{temp_dir}/raw_geometry/data_a", exist_ok=True)
+        os.makedirs(f"{temp_dir}/raw_geometry/data_b", exist_ok=True)
+        os.makedirs(f"{temp_dir}/metadata", exist_ok=True)
+        os.makedirs(f"{temp_dir}/geometry", exist_ok=True)
 
-    region_a_gdf = pl.DataFrame(REGION_A_JSON).with_columns(geometry=st.from_wkt("geometry"))
-    region_a_gdf.pipe(to_gpd_gdf).to_file(region_a_shape, driver="ESRI Shapefile")
-    region_b_gdf = pl.DataFrame(REGION_B_JSON).with_columns(geometry=st.from_wkt("geometry"))
-    region_b_gdf.pipe(to_gpd_gdf).to_file(region_b_shape, driver="ESRI Shapefile")
+        region_a_gdf = pl.DataFrame(REGION_A_JSON).with_columns(geometry=st.from_wkt("geometry"))
+        region_a_gdf.pipe(to_gpd_gdf).to_file(region_a_shape, driver="ESRI Shapefile")
+        region_b_gdf = pl.DataFrame(REGION_B_JSON).with_columns(geometry=st.from_wkt("geometry"))
+        region_b_gdf.pipe(to_gpd_gdf).to_file(region_b_shape, driver="ESRI Shapefile")
 
-    class RegionMockedABC(RegionABC):
-        """Mocked region ABC."""
+        class RegionMockedABC(RegionABC):
+            """Mocked region ABC."""
 
-        @classproperty
-        def metadata_file(self) -> str:
-            """Get the path to the metadata file."""
-            metadata_file = metadata_file_.format(region=self.id)
-            return metadata_file
+            @classproperty
+            def metadata_file(self) -> str:
+                """Get the path to the metadata file."""
+                metadata_file = metadata_file_.format(region=self.id)
+                return metadata_file
 
-        @classproperty
-        def geometry_file(self) -> str:
-            """Get the path to the processed geometry file."""
-            geometry_file = geometry_file_.format(region=self.id)
-            return geometry_file
+            @classproperty
+            def geometry_file(self) -> str:
+                """Get the path to the processed geometry file."""
+                geometry_file = geometry_file_.format(region=self.id)
+                return geometry_file
 
+            @classmethod
+            def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
+                """Structure data."""
+                geometry_with_metadata = geometry_raw.select(
+                    pl.col(cls.id),
+                    pl.struct(
+                        pl.col(cls.name[0:10]).alias(cls.name),
+                        pl.col("extra").cast(pl.Int32),
+                    ).alias("metadata"),
+                    pl.col("geometry"),
+                )
 
-        @classmethod
-        def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:            
-            """Structure data."""
-            geometry_with_metadata = geometry_raw.select(
-                pl.col(cls.id),
-                pl.struct(
-                    pl.col(cls.name[0:10]).alias(cls.name),
-                    pl.col("extra").cast(pl.Int32),
-                ).alias("metadata"),
-                pl.col("geometry"),
-            )
+                return geometry_with_metadata
 
-            return geometry_with_metadata
+        class RegionA(RegionMockedABC):
+            """RegionA for testing."""
 
-    class RegionA(RegionMockedABC):
-        """RegionA for testing."""
+            @classproperty
+            def id(self) -> str:
+                """Id for region_a."""
+                return "region_a"
 
-        @classproperty
-        def id(self) -> str:
-            """Id for region_a."""
-            return "region_a"
+            @classproperty
+            def raw_geometry_file(self) -> str:
+                """Raw file."""
+                return region_a_shape
 
-        @classproperty
-        def raw_geometry_file(self) -> str:
-            """Raw file."""
-            return region_a_shape
+        class RegionB(RegionMockedABC):
+            """RegionB for testing."""
 
-    class RegionB(RegionMockedABC):
-        """RegionB for testing."""
+            @classproperty
+            def id(self) -> str:
+                """Id for region_b."""
+                return "region_b"
 
-        @classproperty
-        def id(self) -> str:
-            """Id for region_b."""
-            return "region_b"
+            @classproperty
+            def raw_geometry_file(self) -> str:
+                """Raw file."""
+                return region_b_shape
 
-        @classproperty
-        def raw_geometry_file(self) -> str:
-            """Raw file."""
-            return region_b_shape
+        region_class = RegionMocked(region_a=RegionA, region_b=RegionB)
 
-    region_class = RegionMocked(region_a=RegionA, region_b=RegionB)
-
-    yield region_class
-
-    shutil.rmtree(temp_dir.name)
+        yield region_class
 
 
 def read_true_geometry(region_id: REGIONS, /, *, raw: bool = False) -> st.GeoDataFrame:

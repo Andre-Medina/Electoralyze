@@ -43,19 +43,31 @@ class RegionABC(ABC):
 
     #### READING #############
     @classproperty
-    @cached(LRUCache(maxsize=1))
-    def geometry(self) -> st.GeoDataFrame:
+    def geometry(cls) -> st.GeoDataFrame:
         """Read the simplified local geometry."""
-        # geometry_read = pyogrio.read_dataframe(self.geometry_file)
-        geometry_read = gpd.read_parquet(self.geometry_file)
+        geometry = cls._geometry_cached()
+        return geometry
+
+    @classmethod
+    @cached(LRUCache(maxsize=32))
+    def _geometry_cached(cls) -> st.GeoDataFrame:
+        """Actually reads and caches the data."""
+        # geometry_read = pyogrio.read_dataframe(cls.geometry_file)
+        geometry_read = gpd.read_parquet(cls.geometry_file)
         geometry = geometry_read.pipe(to_st_gdf)
         return geometry
 
     @classproperty
-    @cached(LRUCache(maxsize=1))
-    def metadata(self) -> pl.DataFrame:
-        """Read the geometry locally."""
-        metadata = pl.read_parquet(self.metadata_file)
+    def metadata(cls) -> pl.DataFrame:
+        """Read the metadata locally."""
+        metadata = cls._metadata_cached()
+        return metadata
+
+    @classmethod
+    @cached(LRUCache(maxsize=32))
+    def _metadata_cached(cls) -> pl.DataFrame:
+        """Actually reads and caches the data."""
+        metadata = pl.read_parquet(cls.metadata_file)
         return metadata
 
     #### FILES ################
@@ -158,16 +170,15 @@ class RegionABC(ABC):
     @abstractmethod
     def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
         """Abstract function to be overwritten by child classes. Transforms raw geometry into geometry with metadata.
-        
+
         Returns
         -------
         st.GeoDataFrame: Processed geometry data with three columns.
         - id columns: column with unique id for each row
         - geometry: geometries for each id
-        - metadata: pl.struct column with any number of sub columns. metadata for each geometry.        
+        - metadata: pl.struct column with any number of sub columns. metadata for each geometry.
         """
         pass
-
 
     @classmethod
     def _get_geometry_raw(cls) -> st.GeoDataFrame:

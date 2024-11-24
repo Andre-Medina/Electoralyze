@@ -2,7 +2,6 @@ import os
 
 import polars as pl
 import polars_st as st
-from cachetools import TTLCache, cached
 from electoralyze.common.constants import ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.region.region_abc import RegionABC
@@ -27,7 +26,6 @@ class SA2_2021(RegionABC):
         """Get the path to the raw data shapefile."""
         raw_geometry_file = os.path.join(ROOT_DIR, "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp")
         return raw_geometry_file
-
 
     @classmethod
     def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:

@@ -9,6 +9,7 @@ from electoralyze.common.testing.region_fixture import RegionMocked, read_true_g
 from geopandas import testing as gpd_testing  # noqa: F401
 from polars import testing as pl_testing  # noqa: F401
 
+import timeit
 
 def test_true_region_id_and_name():
     """Check the region id and name structuring works."""
@@ -30,6 +31,21 @@ def test_true_region_file_names():
     assert os.path.isfile(region.SA1_2021.raw_geometry_file), "Cant find SA1_2021 raw data."
     assert os.path.isfile(region.SA1_2021.geometry_file), "Cant find SA1_2021 processed geom."
     assert os.path.isfile(region.SA1_2021.metadata_file), "Cant find SA1_2021 processed metadata."
+
+def test_region_geometry_caches():
+    """Test loading caches is snappy."""
+
+    def read_geometries():
+        """Read some geometries."""
+        region.SA1_2021.geometry
+        region.SA2_2021.geometry
+        
+    read_geometries() # loads cache 
+
+    execution_time = timeit.timeit(read_geometries, number=10)
+
+    assert execution_time < 1e-3, "Caching geometries didnt work."
+
 
 
 def test_region_fixture_import(region: RegionMocked):

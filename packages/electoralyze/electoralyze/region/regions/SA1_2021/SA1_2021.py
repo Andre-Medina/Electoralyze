@@ -2,7 +2,6 @@ import os
 
 import polars as pl
 import polars_st as st
-from cachetools import TTLCache, cached
 from electoralyze.common.constants import ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.region.region_abc import RegionABC
