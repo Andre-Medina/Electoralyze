@@ -121,6 +121,13 @@ class RegionABC(ABC):
         name_column = f"{self.id}_name"
         return name_column
 
+    @classmethod
+    @cached(LRUCache(maxsize=32))
+    def get_ids(cls) -> set:
+        """Gets set of all ids for this region."""
+        ids = set(cls.metadata[cls.id].unique().to_list())
+        return ids
+
     #### READING #############
     @classproperty
     def geometry(cls) -> st.GeoDataFrame:
@@ -228,11 +235,14 @@ class RegionABC(ABC):
         """Extract and process raw data."""
         print("Loading raw...")
         geometry_raw = cls.get_raw_geometry()
-        metadata = cls.get_raw_metadata()
+        metadata_raw = cls.get_raw_metadata()
 
-        geometry = geometry_raw.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE)).pipe(
-            to_gpd_gdf
+        geometry = (
+            geometry_raw.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE))
+            .sort(cls.id)
+            .pipe(to_gpd_gdf)
         )
+        metadata = metadata_raw.sort(cls.id)
 
         print("Saving...")
 

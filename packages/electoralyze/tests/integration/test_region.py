@@ -13,7 +13,7 @@ from polars import testing as pl_testing  # noqa: F401
     "region_class",
     [
         (region.SA1_2021),
-        # (region.SA2_2021),  # Geometries aren't consistent?
+        (region.SA2_2021),  # Geometries aren't consistent?
     ],
 )
 def test_region_process_raw(region_class):
@@ -45,9 +45,11 @@ def test_region_process_raw(region_class):
         #### Comparing ####
 
         gpd.testing.assert_geodataframe_equal(
-            geometry_new.pipe(to_gpd_gdf), geometry_original.pipe(to_gpd_gdf), check_less_precise=True
+            geometry_new.sort(region_class.id).pipe(to_gpd_gdf),
+            geometry_original.sort(region_class.id).pipe(to_gpd_gdf),
+            check_less_precise=True,
         )
-        pl.testing.assert_frame_equal(metadata_new, metadata_original)
+        pl.testing.assert_frame_equal(metadata_new.sort(region_class.id), metadata_original.sort(region_class.id))
 
         #### Resetting ####
 
