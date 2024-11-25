@@ -9,7 +9,7 @@ from cachetools import LRUCache, TTLCache, cached
 
 from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE, ROOT_DIR
 from electoralyze.common.functools import classproperty
-from electoralyze.common.geometry import to_gpd_gdf, to_st_gdf
+from electoralyze.common.geometry import to_geopandas, to_geopolars
 
 REDISTRIBUTE_FILE = os.path.join(ROOT_DIR, "data/regions/redistribute/{from}_{to}.parquet")
 GEOMETRY_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/geometry.parquet")
@@ -29,24 +29,26 @@ class RegionABC(ABC):
       - `id`: Give the region an 'id' which will be used as the column name for the ids.
       - `raw_geometry_file`: Returns the path to the raw geometries.
       - `_transform_geometry_raw`: Takes raw geometry and processes it.
-    - Refer to child class in the `electoralyze/region/__init__.py` file.
+    - Refer to the newly created region child class in the `electoralyze/region/__init__.py` file.
 
     Example
     -------
-    Adding a region named `SA2_2021`. First adding the class in `electoralyze/region/regions/SA2_2021.py`
+    Walking through how a new region named `SA2_2021` would be added.
+
+    First create the file `electoralyze/region/regions/SA2_2021.py` and add the corresponding class.
     ```python
         from electoralyze.region.region_abc import RegionABC
         ...
         class SA2_2021(RegionABC):
 
             @classproperty
-            def id(self) -> str:
+            def id(cls) -> str:
                 \"\"\"Return the name for this region.\"\"\"
                 id = "SA2_2021"
                 return id
 
             @classproperty
-            def raw_geometry_file(self) -> str:
+            def raw_geometry_file(cls) -> str:
                 \"\"\"Get the path to the raw data shapefile.\"\"\"
                 raw_geometry_file = os.path.join(ROOT_DIR, "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp")
                 return raw_geometry_file
@@ -63,7 +65,7 @@ class RegionABC(ABC):
                 return geometry_with_metadata
     ```
 
-    And reference it in `electoralyze/region/__init__.py`
+    Reference the new class in `electoralyze/region/__init__.py`
     ```python
         from .regions.SA1_2021 import SA1_2021
         from .regions.SA2_2021 import SA2_2021
@@ -94,6 +96,8 @@ class RegionABC(ABC):
         print(region.SA2_2021.geometry)
     ```
 
+    Add processing steps to `/modelling/processing_raw_data/processing_regions.ipynb`.
+
     Can also consider adding tests
     - Integration tests in `tests/integration/test_region.py: test_region_process_raw`.
     - Testing some region basics in `tests/region/test_region_abc.py: test_true_region_id_and_name`.
@@ -101,7 +105,7 @@ class RegionABC(ABC):
 
     @classproperty
     @abstractmethod
-    def id(self) -> str:
+    def id(cls) -> str:
         """Return the name for this region.
 
         Example
@@ -111,14 +115,14 @@ class RegionABC(ABC):
         pass
 
     @classproperty
-    def name(self) -> str:
+    def name(cls) -> str:
         """Returns the corresponding name column.
 
         Example
         -------
         `data.select(Region.SA1_2021.name)`
         """
-        name_column = f"{self.id}_name"
+        name_column = f"{cls.id}_name"
         return name_column
 
     @classmethod
@@ -131,7 +135,9 @@ class RegionABC(ABC):
     #### READING #############
     @classproperty
     def geometry(cls) -> st.GeoDataFrame:
-        """Read the simplified local geometry.
+        """Geometry for this region, linking each region id to the polygon.
+
+        Reads the simplified local geometry.
 
         Returns
         -------
@@ -167,12 +173,14 @@ class RegionABC(ABC):
         """Actually reads and caches the data."""
         # geometry_read = pyogrio.read_dataframe(cls.geometry_file)
         geometry_read = gpd.read_parquet(cls.geometry_file)
-        geometry = geometry_read.pipe(to_st_gdf)
+        geometry = geometry_read.pipe(to_geopolars)
         return geometry
 
     @classproperty
     def metadata(cls) -> pl.DataFrame:
-        """Read the metadata locally.
+        """Metadata for this region, linking each region id to more info e.g. region names.
+
+        Reads the processed metadata stored locally.
 
         Returns
         -------
@@ -212,27 +220,27 @@ class RegionABC(ABC):
     #### FILES ################
     @classproperty
     @abstractmethod
-    def raw_geometry_file(self) -> str:
+    def raw_geometry_file(cls) -> str:
         """Get the path to the raw data shapefile."""
         pass
 
     @classproperty
-    def metadata_file(self) -> str:
+    def metadata_file(cls) -> str:
         """Get the path to the metadata file."""
-        metadata_file = METADATA_FILE.format(region=self.id)
+        metadata_file = METADATA_FILE.format(region=cls.id)
         return metadata_file
 
     @classproperty
-    def geometry_file(self) -> str:
+    def geometry_file(cls) -> str:
         """Get the path to the processed geometry file."""
-        geometry_file = GEOMETRY_FILE.format(region=self.id)
+        geometry_file = GEOMETRY_FILE.format(region=cls.id)
         return geometry_file
 
     #### PROCESSING #########
 
     @classmethod
     def process_raw(cls):
-        """Extract and process raw data."""
+        """Extract, transform and save the raw data to create data for `cls.geometry` and `cls.metadata`."""
         print("Loading raw...")
         geometry_raw = cls.get_raw_geometry()
         metadata_raw = cls.get_raw_metadata()
@@ -240,7 +248,7 @@ class RegionABC(ABC):
         geometry = (
             geometry_raw.with_columns(st.geom("geometry").st.simplify(REGION_SIMPLIFY_TOLERANCE))
             .sort(cls.id)
-            .pipe(to_gpd_gdf)
+            .pipe(to_geopandas)
         )
         metadata = metadata_raw.sort(cls.id)
 
@@ -331,5 +339,5 @@ class RegionABC(ABC):
         st.GeoDataFrame: In any format with any number columns. Should be accepted by `.transform`.
         """
         geometry_raw_gpd = pyogrio.read_dataframe(cls.raw_geometry_file)
-        geometry_raw_st = to_st_gdf(geometry_raw_gpd)
+        geometry_raw_st = to_geopolars(geometry_raw_gpd)
         return geometry_raw_st

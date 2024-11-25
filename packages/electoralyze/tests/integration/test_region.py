@@ -4,7 +4,7 @@ import geopandas as gpd
 import polars as pl
 import pytest
 from electoralyze import region
-from electoralyze.common.geometry import to_gpd_gdf
+from electoralyze.common.geometry import to_geopandas
 from geopandas import testing as gpd_testing  # noqa: F401
 from polars import testing as pl_testing  # noqa: F401
 
@@ -45,8 +45,8 @@ def test_region_process_raw(region_class):
         #### Comparing ####
 
         gpd.testing.assert_geodataframe_equal(
-            geometry_new.sort(region_class.id).pipe(to_gpd_gdf),
-            geometry_original.sort(region_class.id).pipe(to_gpd_gdf),
+            geometry_new.sort(region_class.id).pipe(to_geopandas),
+            geometry_original.sort(region_class.id).pipe(to_geopandas),
             check_less_precise=True,
         )
         pl.testing.assert_frame_equal(metadata_new.sort(region_class.id), metadata_original.sort(region_class.id))

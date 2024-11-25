@@ -11,7 +11,7 @@ class SA1_2021(RegionABC):
     """Region for SA1_2021."""
 
     @classproperty
-    def id(self) -> str:
+    def id(cls) -> str:
         """Return the name for this region.
 
         Example
@@ -22,7 +22,7 @@ class SA1_2021(RegionABC):
         return id
 
     @classproperty
-    def raw_geometry_file(self) -> str:
+    def raw_geometry_file(cls) -> str:
         """Get the path to the raw data shapefile."""
         raw_geometry_file = os.path.join(ROOT_DIR, "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp")
         return raw_geometry_file

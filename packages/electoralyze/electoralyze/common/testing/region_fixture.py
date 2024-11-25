@@ -7,7 +7,7 @@ import polars_st as st
 import pytest
 from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE
 from electoralyze.common.functools import classproperty
-from electoralyze.common.geometry import to_gpd_gdf
+from electoralyze.common.geometry import to_geopandas
 from electoralyze.region.region_abc import RegionABC
 
 REGION_A_JSON = {
@@ -49,7 +49,16 @@ class RegionMocked:
 
 @pytest.fixture(scope="module")
 def region():
-    """Fixture to create a region."""
+    """Fixture to create a mocked region for testing.
+
+    Example
+    -------
+    ```python
+    def test_region(region):
+        assert region.RegionA.id == "region_a"
+        assert region.RegionB.id == "region_b"
+    ```
+    """
     with tempfile.TemporaryDirectory() as temp_dir:
         region_a_shape = f"{temp_dir}/raw_geometry/data_a/shape.shp"
         region_b_shape = f"{temp_dir}/raw_geometry/data_b/shape.shp"
@@ -62,9 +71,9 @@ def region():
         os.makedirs(f"{temp_dir}/geometry", exist_ok=True)
 
         region_a_gdf = pl.DataFrame(REGION_A_JSON).with_columns(geometry=st.from_wkt("geometry"))
-        region_a_gdf.pipe(to_gpd_gdf).to_file(region_a_shape, driver="ESRI Shapefile")
+        region_a_gdf.pipe(to_geopandas).to_file(region_a_shape, driver="ESRI Shapefile")
         region_b_gdf = pl.DataFrame(REGION_B_JSON).with_columns(geometry=st.from_wkt("geometry"))
-        region_b_gdf.pipe(to_gpd_gdf).to_file(region_b_shape, driver="ESRI Shapefile")
+        region_b_gdf.pipe(to_geopandas).to_file(region_b_shape, driver="ESRI Shapefile")
 
         class RegionMockedABC(RegionABC):
             """Mocked region ABC."""
