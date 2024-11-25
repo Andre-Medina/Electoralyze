@@ -103,6 +103,7 @@ class Map(Page):
                     geojson_layer,
                     colour_bar,
                 ],
+                id=self.ids.map,
                 center=INITIAL_COORDS,
                 zoom=INITIAL_ZOOM,
                 zoomControl=False,
