@@ -122,7 +122,33 @@ class RegionABC(ABC):
     #### READING #############
     @classproperty
     def geometry(cls) -> st.GeoDataFrame:
-        """Read the simplified local geometry."""
+        """Read the simplified local geometry.
+
+        Returns
+        -------
+        e.g.
+        ```python
+        >>> region.SA2_2021.geometry
+        shape: (2_472, 2)
+        ┌───────────┬─────────────────────────────────┐
+        │ SA2_2021  ┆ geometry                        │
+        │ ---       ┆ ---                             │
+        │ i64       ┆ binary                          │
+        ╞═══════════╪═════════════════════════════════╡
+        │ 305031128 ┆ POLYGON ((153.040413 -27.44932… │
+        │ 511041289 ┆ POLYGON ((114.921946 -29.27032… │
+        │ 211051285 ┆ POLYGON ((145.411636 -37.79203… │
+        │ 110011188 ┆ POLYGON ((151.135773 -30.28397… │
+        │ 121011687 ┆ POLYGON ((151.209539 -33.80446… │
+        │ …         ┆ …                               │
+        │ 212031458 ┆ POLYGON ((145.279819 -38.06734… │
+        │ 307011178 ┆ POLYGON ((150.400255 -26.97881… │
+        │ 316071546 ┆ POLYGON ((152.976155 -26.61877… │
+        │ 202021026 ┆ POLYGON ((144.421959 -36.81470… │
+        │ 208021181 ┆ POLYGON ((145.078188 -37.88713… │
+        └───────────┴─────────────────────────────────┘
+        ```
+        """
         geometry = cls._geometry_cached()
         return geometry
 
@@ -137,7 +163,33 @@ class RegionABC(ABC):
 
     @classproperty
     def metadata(cls) -> pl.DataFrame:
-        """Read the metadata locally."""
+        """Read the metadata locally.
+
+        Returns
+        -------
+        e.g.
+        ```python
+        >>> region.SA2_2021.metadata
+        shape: (2_472, 2)
+        ┌───────────┬────────────────────────────┐
+        │ SA2_2021  ┆ SA2_2021_name              │
+        │ ---       ┆ ---                        │
+        │ i64       ┆ str                        │
+        ╞═══════════╪════════════════════════════╡
+        │ 305031128 ┆ Newstead - Bowen Hills     │
+        │ 511041289 ┆ Irwin                      │
+        │ 211051285 ┆ Wandin - Seville           │
+        │ 110011188 ┆ Armidale Surrounds - South │
+        │ 121011687 ┆ Willoughby                 │
+        │ …         ┆ …                          │
+        │ 212031458 ┆ Narre Warren South - West  │
+        │ 307011178 ┆ Tara                       │
+        │ 316071546 ┆ Diddillibah - Rosemount    │
+        │ 202021026 ┆ Bendigo Surrounds - South  │
+        │ 208021181 ┆ Murrumbeena                │
+        └───────────┴────────────────────────────┘
+        ```
+        """
         metadata = cls._metadata_cached()
         return metadata
 
