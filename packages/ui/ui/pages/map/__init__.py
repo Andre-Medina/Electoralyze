@@ -10,19 +10,24 @@ from dash_iconify import DashIconify
 
 from ui.common import Page, Scaffold, icon, id
 
-# Had API key in URL but works fine without?
-MAP_TILES_LIGHT = "https://tile.jawg.io/jawg-light/{z}/{x}/{y}{r}.png"
-MAP_TILES_DARK = "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}{r}.png"
-MAP_DISTRIBUTION = '&copy; <a href="https://www.jawg.io/en/">Jawg Maps</a> '
+# Goto but wants API key
+# MAP_TILES_LIGHT = "https://{s}.tile.jawg.io/jawg-light/{z}/{x}/{y}{r}.png"
+# MAP_TILES_DARK = "https://{s}.tile.jawg.io/jawg-dark/{z}/{x}/{y}{r}.png"
+# MAP_DISTRIBUTION = '&copy; <a href="https://www.jawg.io/en/">Jawg Maps</a> '
 # 'https://tile.jawg.io/jawg-matrix/{z}/{x}/{y}{r}.png',
 
 # These looked good, but slow to load without API key
-# url = 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}',
-# url = 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+# MAP_TILES_DARK = 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+# MAP_TILES_LIGHT = 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+# MAP_DISTRIBUTION = '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> '
 
 # Other options
-# url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-# url="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+MAP_TILES_LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+MAP_TILES_DARK = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+MAP_DISTRIBUTION = '&copy; <a href="https://carto.com/basemaps">Carto Maps</a> '
+
+# MAP_TILES_LIGHT="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+# Find more maps here: https://leaflet-extras.github.io/leaflet-providers/preview/
 
 INITIAL_COORDS = (-27.5, 134)
 INITIAL_ZOOM = 5
@@ -98,6 +103,7 @@ class Map(Page):
                     geojson_layer,
                     colour_bar,
                 ],
+                id=self.ids.map,
                 center=INITIAL_COORDS,
                 zoom=INITIAL_ZOOM,
                 zoomControl=False,

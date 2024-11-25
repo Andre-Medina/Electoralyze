@@ -4,7 +4,6 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         if (hoverData == null) {
             return null;
         }
-        // const formatted = `${hoverData.name}: ${hoverData.data_extra}`
 
         const formatted = [
             {
