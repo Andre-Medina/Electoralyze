@@ -7,17 +7,95 @@ import polars_st as st
 import pyogrio
 from cachetools import LRUCache, TTLCache, cached
 
-from electoralyze.common.constants import ELECTORALYZE_DIR, REGION_SIMPLIFY_TOLERANCE
+from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE, ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_gpd_gdf, to_st_gdf
 
-REDISTRIBUTE_FILE = os.path.join(ELECTORALYZE_DIR, "region/regions/{from}/redistribute/{to}.parquet")
-GEOMETRY_SHAPE_FILE = os.path.join(ELECTORALYZE_DIR, "region/regions/{region}/geometry/{region}.parquet")
-METADATA_FILE = os.path.join(ELECTORALYZE_DIR, "region/regions/{region}/metadata.parquet")
+REDISTRIBUTE_FILE = os.path.join(ROOT_DIR, "data/regions/redistribute/{from}_{to}.parquet")
+GEOMETRY_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/geometry.parquet")
+METADATA_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/metadata.parquet")
 
 
 class RegionABC(ABC):
-    """Regions."""
+    """Abstract base class for a region.
+
+    To create a region you must:
+
+    - Create a file in `electoralyze/region/regions/` with the name of the region
+    - Create a child class of `RegionABC`
+    - Overwrite the following methods, more info can be found in each of their doc strings.
+      - `id`: Give the region an 'id' which will be used as the column name for the ids.
+      - `raw_geometry_file`: Returns the path to the raw geometries.
+      - `_transform_geometry_raw`: Takes raw geometry and processes it.
+    - Refer to child class in the `electoralyze/region/__init__.py` file.
+
+    Example
+    -------
+    Adding a region named `SA2_2021`. First adding the class in `electoralyze/region/regions/SA2_2021.py`
+    ```python
+        from electoralyze.region.region_abc import RegionABC
+        ...
+        class SA2_2021(RegionABC):
+
+            @classproperty
+            def id(self) -> str:
+                \"\"\"Return the name for this region.\"\"\"
+                id = "SA2_2021"
+                return id
+
+            @classproperty
+            def raw_geometry_file(self) -> str:
+                \"\"\"Get the path to the raw data shapefile.\"\"\"
+                raw_geometry_file = os.path.join(ROOT_DIR, "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp")
+                return raw_geometry_file
+
+            @classmethod
+            def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
+                \"\"\"Transform data from raw shape.\"\"\"
+
+                geometry_with_metadata = (
+                    geometry_raw
+                    # Some processing here
+                )
+
+                return geometry_with_metadata
+    ```
+
+    And reference it in `electoralyze/region/__init__.py`
+    ```python
+        from .regions.SA1_2021 import SA1_2021
+        from .regions.SA2_2021 import SA2_2021
+
+        __all__ = ["SA1_2021", "SA2_2021"]
+    ```
+
+    Now test all the functions work by using
+    ```python
+        from electoralyze import region
+
+        # Check names and file paths
+        print(region.SA2_2021.id)
+        print(region.SA2_2021.name)
+        print(region.SA2_2021.raw_geometry_file)
+        print(region.SA2_2021.geometry_file)
+        print(region.SA2_2021.metadata_file)
+
+        # Check reading raw data
+        print(region.SA2_2021.get_raw_geometry())
+        print(region.SA2_2021.get_raw_metadata())
+
+        # Process raw
+        region.SA2_2021.process_raw()
+
+        # Check the data processed and saved correctly
+        print(region.SA2_2021.metadata)
+        print(region.SA2_2021.geometry)
+    ```
+
+    Can also consider adding tests
+    - Integration tests in `tests/integration/test_region.py: test_region_process_raw`.
+    - Testing some region basics in `tests/region/test_region_abc.py: test_true_region_id_and_name`.
+    """
 
     @classproperty
     @abstractmethod
@@ -86,7 +164,7 @@ class RegionABC(ABC):
     @classproperty
     def geometry_file(self) -> str:
         """Get the path to the processed geometry file."""
-        geometry_file = GEOMETRY_SHAPE_FILE.format(region=self.id)
+        geometry_file = GEOMETRY_FILE.format(region=self.id)
         return geometry_file
 
     #### PROCESSING #########
