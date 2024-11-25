@@ -23,10 +23,6 @@ pytests will run with pre-commit, to run manually use:
 ```sh
 pixi run tests
 ```
-Can also run the integration tests using
-```sh
-pixi run integration
-```
 
 ## API summary
 
@@ -36,6 +32,8 @@ There are two packages within this repo:
 
 ### UI
 
+To start the UI locally, use the debugger in Visual Studio Code and run `Electoralyze UI`. It should automatically run `ui/app.py` which is the main file which creates the application.
 
+To create a new page. Refer to the example and instructions in `ui/common/page.py`.
 
 ### Electoralyze
