@@ -11,5 +11,8 @@
         "mantine",
         "pytests",
         "Scrollbars"
-    ]
+    ],
+    "codeium.searchMaxWorkspaceFileCount": 5000,
+    "codeium.indexingRetentionPeriod": 30,
+    "codeium.enableSearch": "default"
 }

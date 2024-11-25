@@ -10,3 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `packages/electoralyze`
 - Base UI including navigation and page creation API.
 - Base map on the UI for viewing geometric data.
+- RegionABC to create a API for different regions
+- SA1_2021 region with processed data
+- SA2_2021 region with processed data

@@ -10,16 +10,27 @@ default = { features = ["dev", "ui"], solve-group = "default"}
 
 [pypi-dependencies]
 electoralyze = { path = "packages/electoralyze", editable = true }
+polars-st = ">=0.1.0a9, <0.2"
+pyogrio = ">=0.10.0,<0.11"  # Get import error if installed by conda
+geopandas = ">=1.0.1,<2"
+pytz = ">=2024.1,<2025"
 
 [feature.ui.pypi-dependencies]
 ui = { path = "packages/ui", editable = true }
 dash-iconify = ">=0.1.2, <0.2"
 
 [tasks]
-tests = "pytest -v packages/electoralyze/tests"
+tests = "pytest -v packages/electoralyze/tests --ignore=packages/electoralyze/tests/integration"
+integration = "pytest -v packages/electoralyze/tests/integration"
 
 [feature.dev.tasks]
 test_all = "pytest -v packages"
+
+[dependencies]
+pytest = "*"
+pre-commit = ">=4.0.1,<5"
+pyarrow = ">=18.0.0,<19"
+cachetools = ">=5.5.0,<6"
 
 [feature.ui.dependencies]
 dash = ">=2.18.1,<3"
@@ -29,8 +40,9 @@ dash-leaflet = ">=1.0.15,<2"
 geojson = ">=3.1.0,<4"
 dash-extensions = ">=1.0.8,<2"
 
-[dependencies]
-rich = ">=13.9.3,<14"
-pytest = "*"
-pre-commit = ">=4.0.1,<5"
+[feature.dev.dependencies]
+altair = ">=5.4.1,<6" # Plotting with geopandas
+folium = ">=0.18.0,<0.19" # Plotting with geopandas
+matplotlib = ">=3.9.2,<4" # Plotting with geopandas
+mapclassify = ">=2.8.1,<3" # Plotting with geopandas
 ipykernel = ">=6.29.5,<7"
