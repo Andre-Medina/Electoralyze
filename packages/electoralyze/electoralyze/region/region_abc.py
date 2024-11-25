@@ -15,6 +15,8 @@ REDISTRIBUTE_FILE = os.path.join(ROOT_DIR, "data/regions/redistribute/{from}_{to
 GEOMETRY_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/geometry.parquet")
 METADATA_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/metadata.parquet")
 
+FULL_GEOMETRY_TTL_S = 300
+
 
 class RegionABC(ABC):
     """Abstract base class for a region.
@@ -257,7 +259,7 @@ class RegionABC(ABC):
         return metadata
 
     @classmethod
-    @cached(TTLCache(maxsize=1, ttl=300))
+    @cached(TTLCache(maxsize=1, ttl=FULL_GEOMETRY_TTL_S))
     def _get_geometry_with_metadata(cls) -> st.GeoDataFrame:
         """Transform data from raw shape.
 
