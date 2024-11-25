@@ -4,7 +4,17 @@ NEEDED_PAGE_ATTRIBUTES = ["path", "label"]
 
 
 class Page(dmc.Stack):
-    """Page base class, refer to __init__."""
+    """Page base class for creating pages.
+
+    To create a page you must follow the following steps
+    - Create a file for you page In `ui/pages`
+    - Inherit this class and
+      -
+
+    Example
+    -------
+
+    """
 
     path: str
     label: str

@@ -23,3 +23,19 @@ pytests will run with pre-commit, to run manually use:
 ```sh
 pixi run tests
 ```
+Can also run the integration tests using
+```sh
+pixi run integration
+```
+
+## API summary
+
+There are two packages within this repo:
+- UI: Creates the UI
+- Electoralyze: API for Australian census, regions and election data.
+
+### UI
+
+
+
+### Electoralyze
