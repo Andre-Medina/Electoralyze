@@ -68,7 +68,7 @@ class SA2_2021(RegionABC):
 
         geometry_with_metadata = geometry_grouped.select(
             pl.col(cls.id),
-            pl.struct(pl.col(cls.name)).alias("metadata"),
+            pl.struct(pl.col(cls.name).str.to_lowercase().str.replace(r"[- ]", "_")).alias("metadata"),
             pl.col("geometry"),
         )
 

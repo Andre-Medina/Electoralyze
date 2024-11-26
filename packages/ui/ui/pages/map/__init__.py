@@ -7,8 +7,11 @@ import requests
 from dash import ClientsideFunction, Input, Output, callback, clientside_callback, html
 from dash_extensions.javascript import arrow_function
 from dash_iconify import DashIconify
+from electoralyze import region
+from electoralyze.common.geometry import to_geopandas
 
 from ui.common import Page, Scaffold, icon, id
+from ui.common.utils import as_labels
 
 # Goto but wants API key
 # MAP_TILES_LIGHT = "https://{s}.tile.jawg.io/jawg-light/{z}/{x}/{y}{r}.png"
@@ -120,7 +123,7 @@ class Map(Page):
             dmc.Select(
                 id=self.ids.data_source,
                 label="Data displayed",
-                data=[x.value for x in DataSource],
+                data=as_labels(DataSource) + as_labels(region.ALL_IDS),
                 persistence=True,
                 value=DataSource.COUNTRY,
                 leftSection=DashIconify(icon=icon.analytics, height=19),
@@ -131,7 +134,7 @@ class Map(Page):
                 id=self.ids.data_extra,
                 allowDeselect=False,
                 label="Other option",
-                data=[{"value": s.value, "label": s.value.capitalize()} for s in DataExtra],
+                data=as_labels(DataExtra),
                 persistence=True,
                 value=DataExtra.MORE,
                 comboboxProps={"position": "bottom", "zIndex": ZIndex.CONTROL_DROPDOWNS},
@@ -212,14 +215,15 @@ def update_map_data(_n_clicks, data_source, data_extra) -> dict:
         case DataSource.STATE:
             geo_url = "https://raw.githubusercontent.com/rowanhogan/australian-states/refs/heads/master/states.geojson"
             name_prop = "STATE_NAME"
+            geojson_data = fetch_geojson(geo_url)
 
         case DataSource.COUNTRY:
             geo_url = "https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson"
             name_prop = "name"
+            geojson_data = fetch_geojson(geo_url)
         case _:
-            raise ValueError("bad data.")
-
-    geojson_data = fetch_geojson(geo_url)
+            geojson_data = region.from_id(data_source).geometry.pipe(to_geopandas).to_geo_dict()
+            name_prop = data_source
 
     for feature in geojson_data["features"]:
         if "properties" in feature and name_prop in feature["properties"]:

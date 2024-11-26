@@ -20,7 +20,7 @@ ui = { path = "packages/ui", editable = true }
 dash-iconify = ">=0.1.2, <0.2"
 
 [tasks]
-tests = "pytest -v packages/electoralyze/tests --ignore=packages/electoralyze/tests/integration"
+tests = "pytest -v packages/electoralyze/tests packages/ui/tests --ignore=packages/electoralyze/tests/integration"
 integration = "pytest -v packages/electoralyze/tests/integration"
 
 [feature.dev.tasks]

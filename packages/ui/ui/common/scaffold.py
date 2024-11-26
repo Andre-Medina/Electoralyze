@@ -10,8 +10,8 @@ from dash.dash import (
 from dash_iconify import DashIconify
 
 from ui.common import icon
-from ui.common.id import id
 from ui.common.page import Page
+from ui.common.utils import id
 
 # Set new react version.
 dash._dash_renderer._set_react_version("18.2.0")  # type: ignore
