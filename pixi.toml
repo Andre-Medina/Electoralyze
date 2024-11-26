@@ -16,12 +16,15 @@ pyogrio = ">=0.10.0,<0.11"  # Get import error if installed by conda
 geopandas = ">=1.0.1,<2"
 pytz = ">=2024.1,<2025"
 
+[feature.live.pypi-dependencies]
+electoralive = { path = "packages/electoralive", editable = true }
+
 [feature.ui.pypi-dependencies]
 ui = { path = "packages/ui", editable = true }
 dash-iconify = ">=0.1.2, <0.2"
 
 [tasks]
-tests = "pytest -v packages/electoralyze/tests --ignore=packages/electoralyze/tests/integration"
+tests = "pytest -v packages/electoralyze/tests packages/electoralive/tests --ignore=packages/electoralyze/tests/integration"
 integration = "pytest -v packages/electoralyze/tests/integration"
 
 [feature.dev.tasks]

@@ -33,6 +33,7 @@ pixi run integration
 There are two packages within this repo:
 - UI: Creates the UI
 - Electoralyze: API for Australian census, regions and election data.
+- Electoralive: API for viewing live election results on election night.
 
 ### UI
 
@@ -89,3 +90,8 @@ main properties and methods include
 #### `census`
 
 #### `election`
+
+
+### Electoralive
+
+"Elec-tora-live"
