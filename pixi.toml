@@ -4,9 +4,10 @@ platforms = ["linux-64"]
 name = "vision"
 
 [environments]
-ui = { features = ["ui"], solve-group = "default"}
-dev = { features = ["dev","ui"], solve-group = "default"}
-default = { features = ["dev", "ui"], solve-group = "default"}
+live = { features = ["live"], solve-group = "default"}
+ui = { features = ["ui", "live"], solve-group = "default"}
+dev = { features = ["dev","ui", "live"], solve-group = "default"}
+default = { features = ["dev", "ui", "live"], solve-group = "default"}
 
 [pypi-dependencies]
 electoralyze = { path = "packages/electoralyze", editable = true }
@@ -31,6 +32,9 @@ pytest = "*"
 pre-commit = ">=4.0.1,<5"
 pyarrow = ">=18.0.0,<19"
 cachetools = ">=5.5.0,<6"
+
+[feature.live.dependencies]
+xmltodict = "*"
 
 [feature.ui.dependencies]
 dash = ">=2.18.1,<3"
