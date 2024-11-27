@@ -1,0 +1,26 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pixi Setup
+        uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: v0.33.0
+          cache: true
+
+      - name: Test Pixi
+        run: pixi run test
+
+      - name: Run tests with Pixi
+        run: pixi run tests
