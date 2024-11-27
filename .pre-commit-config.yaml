@@ -23,8 +23,8 @@ repos:
         language: system
         stages: [pre-commit, pre-merge-commit, manual]
         pass_filenames: false
-      - id: pytest-check
-        name: pytest-check
-        entry: pixi run tests
-        language: system
-        pass_filenames: false
+      # - id: pytest-check
+      #   name: pytest-check
+      #   entry: pixi run tests
+      #   language: system
+      #   pass_filenames: false

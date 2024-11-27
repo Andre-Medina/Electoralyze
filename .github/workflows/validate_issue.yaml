@@ -1,0 +1,40 @@
+name: Validate Issue
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  validate-issue-title:
+    name: Issue Title
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+
+    steps:
+      - name: Validate issue title
+        id: validate
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          VALID_TITLE_REGEX: '^\[(Feature|Bug)\](\[[a-zA-Z]+\])+: .+$'
+        run: |
+          echo "Issue Title: $ISSUE_TITLE"
+          if [[ ! "$ISSUE_TITLE" =~ $VALID_TITLE_REGEX ]]; then
+            echo "Invalid title"
+            echo "valid=false" >> $GITHUB_OUTPUT
+          else
+            echo "Valid title"
+            echo "valid=true" >> $GITHUB_OUTPUT
+
+      - name: Comment on issue
+        if: steps.validate.outputs.valid == 'false'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.issues.createComment({
+              issue_number: ${{ github.event.issue.number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "🚫 The issue title does not follow the required format. Please update it to match the pattern: `^[(feat|bug)]: .+$` E.g. [Feature]: Add function."
+            })

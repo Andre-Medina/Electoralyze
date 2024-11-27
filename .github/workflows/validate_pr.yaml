@@ -1,0 +1,38 @@
+name: Validate Pull Request
+
+on:
+  pull_request:
+    types: [edited, synchronize, opened, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate-pr-title:
+    name: PR name & Linked Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Verify PR name
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        with:
+          types: |
+            fix
+            feat
+          scopes: |
+            ui
+            core
+            live
+            global
+          requireScope: true
+          headerPattern: '^(\w*)(?:\[([\w$.\-*/ ]*)\])?: (.*)$'
+          headerPatternCorrespondence: type, scope, subject
+
+      # - name: # FIXME: Verify Linked Issue # Issue #8
+      #   uses: hattan/verify-linked-issue-action@v1.1.5
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
