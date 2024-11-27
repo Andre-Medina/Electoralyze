@@ -1,0 +1,35 @@
+name: Validate Branch Name
+
+on:
+  push:
+    branches:
+      - '**' # Trigger on all branches
+  pull_request:
+    branches:
+      - '**' # Trigger on all PR branches
+
+jobs:
+  validate-branch-name:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            README.md
+          sparse-checkout-cone-mode: false
+
+      - name: Validate branch name
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+          VALID_BRANCH_REGEX: '^(feature|bugfix|release|main)/[0-9]+/[a-z0-9_]+$'
+        run: |
+          echo "Branch Name: $BRANCH_NAME"
+          if [[ ! "$BRANCH_NAME" =~ $VALID_BRANCH_REGEX ]]; then
+            echo "❌ Invalid branch name: $BRANCH_NAME"
+            echo "Branch names must follow the pattern: $VALID_BRANCH_REGEX, E.g 'feature/123/new_function' where '123' is the linked issue."
+            exit 1
+          else
+            echo "✅ Branch name is valid."
+          fi
