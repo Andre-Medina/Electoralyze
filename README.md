@@ -28,6 +28,13 @@ Can also run the integration tests using
 pixi run integration
 ```
 
+## Contributing
+
+- Fork this repo.
+- Create a branch on your fork.
+- Create a pull request from your new branch on your fork to main in the main repo.
+
+
 ## API summary
 
 There are two packages within this repo:

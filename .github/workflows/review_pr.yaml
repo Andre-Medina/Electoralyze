@@ -1,0 +1,38 @@
+name: "Lint PR"
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate-pr-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        with:
+          types: |
+            fix
+            feat
+          scopes: |
+            ui
+            core
+            live
+          requireScope: true
+          headerPattern: '^(\w*)(?:\[([\w$.\-*/ ]*)\])?: (.*)$'
+          headerPatternCorrespondence: type, scope, subject
+
+      - name: Verify Linked Issue
+        uses: hattan/verify-linked-issue-action@v1.1.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
