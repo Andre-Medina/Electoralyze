@@ -1,4 +1,4 @@
-name: Validate Branch Name
+name: Validate Branch
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   validate-branch-name:
+    name: branch name
     runs-on: ubuntu-latest
 
     steps:

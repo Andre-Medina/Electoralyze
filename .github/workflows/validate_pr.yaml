@@ -1,22 +1,19 @@
-name: "Validate PR"
+name: Validate Pull Request
 
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - edited
+    types: [edited, synchronize, opened, reopened]
 
 permissions:
   pull-requests: read
 
 jobs:
   validate-pr-title:
-    name: Validate PR title
+    name: PR name & Linked Issue
     runs-on: ubuntu-latest
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - name: Verify PR name
+        uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
