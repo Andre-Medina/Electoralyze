@@ -30,7 +30,7 @@ jobs:
           headerPattern: '^(\w*)(?:\[([\w$.\-*/ ]*)\])?: (.*)$'
           headerPatternCorrespondence: type, scope, subject
 
-      - name: Verify Linked Issue
-        uses: hattan/verify-linked-issue-action@v1.1.5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: # FIXME: Verify Linked Issue # Issue #8
+      #   uses: hattan/verify-linked-issue-action@v1.1.5
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
