@@ -28,6 +28,7 @@ jobs:
             ui
             core
             live
+            global
           requireScope: true
           headerPattern: '^(\w*)(?:\[([\w$.\-*/ ]*)\])?: (.*)$'
           headerPatternCorrespondence: type, scope, subject
