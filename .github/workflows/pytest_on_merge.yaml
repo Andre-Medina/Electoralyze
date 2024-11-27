@@ -1,1 +1,5 @@
-# FIXME: Setup git LFS #10
+name: Integration Tests
+  # FIXME: Setup git LFS #10
+# on:
+
+# jobs:

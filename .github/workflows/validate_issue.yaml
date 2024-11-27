@@ -2,14 +2,14 @@ name: Validate Issue
 
 on:
   issues:
-    types:
-      - opened
-      - edited
+    types: [opened, edited]
 
 jobs:
   validate-issue-title:
     name: Issue Title
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
 
     steps:
       - name: Validate issue title

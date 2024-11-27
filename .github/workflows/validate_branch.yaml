@@ -9,6 +9,7 @@ jobs:
   validate-branch-name:
     name: branch name
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Check repository

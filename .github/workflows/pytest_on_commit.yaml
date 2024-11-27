@@ -9,6 +9,7 @@ jobs:
   unit_tests:
     name: pixi run tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
