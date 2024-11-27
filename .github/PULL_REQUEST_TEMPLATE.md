@@ -13,3 +13,6 @@ I have:
 - [ ] Linked an issue and added all necessary info
 - [ ] Updated the **changelog & docs**
 - [ ] Self-**reviewed** my PR
+
+<!-- What GH issue does this close? -->
+closes #
