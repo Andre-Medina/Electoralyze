@@ -1,9 +1,9 @@
 name: Validate Branch
 
 on:
-  push:
+  pull_request:
     branches:
-      - '**' # Trigger on all branches
+      - '**'
 
 jobs:
   validate-branch-name:
