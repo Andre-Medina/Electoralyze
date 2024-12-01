@@ -11,7 +11,6 @@ from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE, ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas, to_geopolars
 
-REDISTRIBUTE_FILE = os.path.join(ROOT_DIR, "data/regions/redistribute/{from}_{to}.parquet")
 GEOMETRY_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/geometry.parquet")
 METADATA_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/metadata.parquet")
 
