@@ -69,7 +69,7 @@ def create_region_mapping_base(
     mapping: MAPPING_OPTIONS,
     redistribute_with_full: bool = True,
     save_data: bool = True,
-):
+) -> pl.DataFrame:
     """Create region mapping base.
 
     WIP.
