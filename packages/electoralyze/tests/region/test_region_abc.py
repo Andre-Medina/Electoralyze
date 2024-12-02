@@ -54,68 +54,70 @@ def test_region_geometry_caches():
 def test_region_fixture_import(region: RegionMocked):
     """Test region fixture imports."""
     gpd.testing.assert_geodataframe_equal(
-        region.RegionA.get_raw_geometry().pipe(to_geopandas),
+        region.region_a.get_raw_geometry().pipe(to_geopandas),
         read_true_geometry("region_a", raw=True).pipe(to_geopandas),
     )
     gpd.testing.assert_geodataframe_equal(
-        region.RegionB.get_raw_geometry().pipe(to_geopandas),
+        region.region_b.get_raw_geometry().pipe(to_geopandas),
         read_true_geometry("region_b", raw=True).pipe(to_geopandas),
     )
     gpd.testing.assert_geodataframe_equal(
-        region.RegionC.get_raw_geometry().pipe(to_geopandas),
+        region.region_c.get_raw_geometry().pipe(to_geopandas),
         read_true_geometry("region_c", raw=True).pipe(to_geopandas),
     )
-    pl.testing.assert_frame_equal(region.RegionA.get_raw_metadata(), read_true_metadata("region_a"))
-    pl.testing.assert_frame_equal(region.RegionB.get_raw_metadata(), read_true_metadata("region_b"))
-    pl.testing.assert_frame_equal(region.RegionC.get_raw_metadata(), read_true_metadata("region_c"))
+    pl.testing.assert_frame_equal(region.region_a.get_raw_metadata(), read_true_metadata("region_a"))
+    pl.testing.assert_frame_equal(region.region_b.get_raw_metadata(), read_true_metadata("region_b"))
+    pl.testing.assert_frame_equal(region.region_c.get_raw_metadata(), read_true_metadata("region_c"))
 
 
 def test_region_fixture_process(region: RegionMocked):
     """Test region fixture processes raw data and saves it."""
-    with pytest.raises(FileNotFoundError):
-        region.RegionA.geometry  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionA.metadata  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionB.geometry  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionB.metadata  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionC.geometry  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionC.metadata  # noqa:B018
+    region.remove_processed_files()
 
-    region.RegionA.process_raw()
-    region.RegionB.process_raw()
-    region.RegionC.process_raw()
+    with pytest.raises(FileNotFoundError):
+        region.region_a.geometry  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.region_a.metadata  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.region_b.geometry  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.region_b.metadata  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.region_c.geometry  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.region_c.metadata  # noqa:B018
+
+    region.region_a.process_raw()
+    region.region_b.process_raw()
+    region.region_c.process_raw()
 
     gpd.testing.assert_geodataframe_equal(
-        region.RegionA.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
+        region.region_a.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
     )
     gpd.testing.assert_geodataframe_equal(
-        region.RegionB.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
+        region.region_b.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
     )
     gpd.testing.assert_geodataframe_equal(
-        region.RegionC.geometry.pipe(to_geopandas), read_true_geometry("region_c").pipe(to_geopandas)
+        region.region_c.geometry.pipe(to_geopandas), read_true_geometry("region_c").pipe(to_geopandas)
     )
 
-    pl.testing.assert_frame_equal(region.RegionA.metadata, read_true_metadata("region_a"))
-    pl.testing.assert_frame_equal(region.RegionB.metadata, read_true_metadata("region_b"))
-    pl.testing.assert_frame_equal(region.RegionC.metadata, read_true_metadata("region_c"))
+    pl.testing.assert_frame_equal(region.region_a.metadata, read_true_metadata("region_a"))
+    pl.testing.assert_frame_equal(region.region_b.metadata, read_true_metadata("region_b"))
+    pl.testing.assert_frame_equal(region.region_c.metadata, read_true_metadata("region_c"))
 
 
 def test_region_fixture_still_processed(region: RegionMocked):
     """Test region fixture keeps saved data."""
     gpd.testing.assert_geodataframe_equal(
-        region.RegionA.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
+        region.region_a.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
     )
     gpd.testing.assert_geodataframe_equal(
-        region.RegionB.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
+        region.region_b.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
     )
     gpd.testing.assert_geodataframe_equal(
-        region.RegionC.geometry.pipe(to_geopandas), read_true_geometry("region_c").pipe(to_geopandas)
+        region.region_c.geometry.pipe(to_geopandas), read_true_geometry("region_c").pipe(to_geopandas)
     )
 
-    pl.testing.assert_frame_equal(region.RegionA.metadata, read_true_metadata("region_a"))
-    pl.testing.assert_frame_equal(region.RegionB.metadata, read_true_metadata("region_b"))
-    pl.testing.assert_frame_equal(region.RegionC.metadata, read_true_metadata("region_c"))
+    pl.testing.assert_frame_equal(region.region_a.metadata, read_true_metadata("region_a"))
+    pl.testing.assert_frame_equal(region.region_b.metadata, read_true_metadata("region_b"))
+    pl.testing.assert_frame_equal(region.region_c.metadata, read_true_metadata("region_c"))

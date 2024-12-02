@@ -50,14 +50,24 @@ REGIONS = Literal["region_a", "region_b", "region_c"]
 class RegionMocked:
     """Class to type hint the mocked regions."""
 
-    RegionA: RegionABC
-    RegionB: RegionABC
-    RegionC: RegionABC
+    region_a: RegionABC
+    region_b: RegionABC
+    region_c: RegionABC
 
     def __init__(self, *, region_a, region_b, region_c):
-        self.RegionA = region_a
-        self.RegionB = region_b
-        self.RegionC = region_c
+        self.region_a = region_a
+        self.region_b = region_b
+        self.region_c = region_c
+
+    def from_id(self, region_id: str) -> RegionABC:
+        """Get a region from its id."""
+        region_ = getattr(self, region_id)
+        return region_
+
+    def remove_processed_files(self) -> None:
+        """Remove processed files."""
+        for region_ in (self.region_a, self.region_b, self.region_c):
+            region_.remove_processed_files()
 
 
 @pytest.fixture(scope="module")
@@ -149,6 +159,10 @@ def region():
                 return region_c_shape
 
         region_class = RegionMocked(region_a=RegionA, region_b=RegionB, region_c=RegionC)
+
+        region_class.region_a.process_raw()
+        region_class.region_b.process_raw()
+        region_class.region_c.process_raw()
 
         yield region_class
 

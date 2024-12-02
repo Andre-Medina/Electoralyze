@@ -248,6 +248,14 @@ class RegionABC(ABC):
         redistribute_file = _REDISTRIBUTE_FILE.format(root_dir=cls._root_dir)
         return redistribute_file
 
+    @classmethod
+    def remove_processed_files(cls):
+        """Remove processed files."""
+        if os.path.isfile(cls.geometry_file):
+            os.remove(cls.geometry_file)
+        if os.path.isfile(cls.metadata_file):
+            os.remove(cls.metadata_file)
+
     #### PROCESSING #########
 
     @classmethod

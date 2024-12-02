@@ -19,8 +19,25 @@ def get_region_mapping_base(
     Returns
     -------
     pl.DataFrame, mapping from region_from to region_to.
-    ```python
-
+    E.g.
+    ```
+    shape: (10, 3)
+    ┌──────────┬──────────┬──────────┐
+    │ region_a ┆ region_b ┆ mapping  │
+    │ ---      ┆ ---      ┆ ---      │
+    │ str      ┆ str      ┆ f64      │
+    ╞══════════╪══════════╪══════════╡
+    │ M        ┆ A        ┆ 0.25     │
+    │ M        ┆ B        ┆ 0.75     │
+    │ N        ┆ A        ┆ 0.25     │
+    │ N        ┆ C        ┆ 0.75     │
+    │ O        ┆ A        ┆ 0.75     │
+    │ O        ┆ B        ┆ 0.25     │
+    │ P        ┆ A        ┆ 0.75     │
+    │ P        ┆ C        ┆ 0.25     │
+    │ null     ┆ C        ┆ 1.0      │
+    │ null     ┆ B        ┆ 1.0      │
+    └──────────┴──────────┴──────────┘
     ```
 
     """
@@ -90,22 +107,22 @@ def _create_intersection_area_mapping(
     E.g.
     ```
     shape: (10, 3)
-    ┌──────────┬──────────┬───────────────────┐
-    │ region_a ┆ region_b ┆ intersection_area │
-    │ ---      ┆ ---      ┆ ---               │
-    │ str      ┆ str      ┆ f64               │
-    ╞══════════╪══════════╪═══════════════════╡
-    │ M        ┆ A        ┆ 0.25              │
-    │ M        ┆ B        ┆ 0.75              │
-    │ N        ┆ A        ┆ 0.25              │
-    │ N        ┆ C        ┆ 0.75              │
-    │ O        ┆ A        ┆ 0.75              │
-    │ O        ┆ B        ┆ 0.25              │
-    │ P        ┆ A        ┆ 0.75              │
-    │ P        ┆ C        ┆ 0.25              │
-    │ null     ┆ C        ┆ 1.0               │
-    │ null     ┆ B        ┆ 1.0               │
-    └──────────┴──────────┴───────────────────┘
+    ┌──────────┬──────────┬──────────┐
+    │ region_a ┆ region_b ┆ mapping  │
+    │ ---      ┆ ---      ┆ ---      │
+    │ str      ┆ str      ┆ f64      │
+    ╞══════════╪══════════╪══════════╡
+    │ M        ┆ A        ┆ 0.25     │
+    │ M        ┆ B        ┆ 0.75     │
+    │ N        ┆ A        ┆ 0.25     │
+    │ N        ┆ C        ┆ 0.75     │
+    │ O        ┆ A        ┆ 0.75     │
+    │ O        ┆ B        ┆ 0.25     │
+    │ P        ┆ A        ┆ 0.75     │
+    │ P        ┆ C        ┆ 0.25     │
+    │ null     ┆ C        ┆ 1.0      │
+    │ null     ┆ B        ┆ 1.0      │
+    └──────────┴──────────┴──────────┘
     ```
     """
     geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
@@ -126,8 +143,10 @@ def _create_intersection_area_mapping(
         geometry=geometry_to,
         intersection_area=intersection_area,
     )
-    intersection_area_complete = pl.concat([intersection_area, remaining_area_for_from, remaining_area_for_to]).filter(
-        pl.col("intersection_area") != 0
+    intersection_area_complete = (
+        pl.concat([intersection_area, remaining_area_for_from, remaining_area_for_to])
+        .filter(pl.col("intersection_area") != 0)
+        .rename({"intersection_area": "mapping"})
     )
 
     return intersection_area_complete
