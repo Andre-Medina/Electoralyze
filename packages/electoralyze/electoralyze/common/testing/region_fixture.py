@@ -118,8 +118,6 @@ def region():
         os.makedirs(f"{temp_dir}/raw_geometry/data_a", exist_ok=True)
         os.makedirs(f"{temp_dir}/raw_geometry/data_b", exist_ok=True)
         os.makedirs(f"{temp_dir}/raw_geometry/data_c", exist_ok=True)
-        # os.makedirs(f"{temp_dir}/metadata", exist_ok=True)
-        # os.makedirs(f"{temp_dir}/geometry", exist_ok=True)
 
         region_a_gdf = pl.DataFrame(REGION_A_JSON).with_columns(geometry=st.from_wkt("geometry"))
         region_a_gdf.pipe(to_geopandas).to_file(region_a_shape, driver="ESRI Shapefile")

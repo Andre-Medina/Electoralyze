@@ -129,7 +129,7 @@ def _get_region_mapping(
         mapping_base = get_region_mapping_base(
             region_from=region_from,
             region_to=region_to,
-            mapping=mapping_method,
+            mapping_method=mapping_method,
             redistribute_with_full=redistribute_with_full,
         )
 

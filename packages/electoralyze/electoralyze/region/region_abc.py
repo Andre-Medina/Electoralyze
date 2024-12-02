@@ -13,7 +13,7 @@ from electoralyze.common.geometry import to_geopandas, to_geopolars
 
 GEOMETRY_FILE = "{root_dir}/data/regions/{region}/geometry.parquet"
 METADATA_FILE = "{root_dir}/data/regions/{region}/metadata.parquet"
-_REDISTRIBUTE_FILE = "{root_dir}/data/regions/redistribute/{mapping}/{region_a}_{region_b}.parquet"
+_REDISTRIBUTE_FILE = "{root_dir}/data/regions/redistribute/{{mapping}}/{{region_a}}_{{region_b}}.parquet"
 
 
 FULL_GEOMETRY_TTL_S = 300

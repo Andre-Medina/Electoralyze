@@ -11,7 +11,7 @@ def get_region_mapping_base(
     region_from: RegionABC,
     region_to: RegionABC,
     *,
-    mapping: MAPPING_OPTIONS,
+    mapping_method: MAPPING_OPTIONS,
     redistribute_with_full: bool | None = None,
 ) -> pl.DataFrame:
     """Get region mapping base.
@@ -41,18 +41,18 @@ def get_region_mapping_base(
     ```
 
     """
-    mapping_file = _get_region_mapping_file(region_from, region_to, mapping=mapping)
+    mapping_file = _get_region_mapping_file(region_from, region_to, mapping=mapping_method)
 
     if not os.path.exists(mapping_file):
         if redistribute_with_full is None:
             raise FileNotFoundError(
-                f"Mapping file not found for `{region_from.id}` -> `{region_to.id}` under mapping `{mapping}`. "
+                f"Mapping file not found for `{region_from.id}` -> `{region_to.id}` under mapping `{mapping_method}`. "
                 "Consider generating it with `create_region_mapping_base` or pass `redistribute_with_full=True/False`."
             )
         region_mapping = create_region_mapping_base(
             region_from,
             region_to,
-            mapping=mapping,
+            mapping=mapping_method,
             redistribute_with_full=redistribute_with_full,
             save_data=False,
         )
@@ -76,7 +76,7 @@ def create_region_mapping_base(
     """
     if redistribute_with_full:
         geometry_from: st.GeoDataFrame = region_from.get_raw_geometry()
-        geometry_to: st.GeoDataFrame = region_from.get_raw_geometry()
+        geometry_to: st.GeoDataFrame = region_to.get_raw_geometry()
     else:
         geometry_from: st.GeoDataFrame = region_from.geometry
         geometry_to: st.GeoDataFrame = region_to.geometry
@@ -196,7 +196,7 @@ def _get_region_mapping_file(
 ) -> str:
     """Returns the path to the mapping file for the given region."""
     regions = list({region_from.id, region_to.id})
-    mapping_file = region_from._redistribute_file.format(
+    mapping_file = region_from.redistribute_file.format(
         mapping=mapping,
         region_a=regions[0],
         region_b=regions[1],
