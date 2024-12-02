@@ -10,6 +10,8 @@ from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas
 from electoralyze.region.region_abc import RegionABC
 
+QUARTER = 1 / 4
+
 REGION_A_JSON = {
     "region_a": ["M", "N", "O", "P"],
     "region_a_name": ["Mew", "New", "Omega", "Phi"],
@@ -38,13 +40,39 @@ REGION_C_JSON = {
     "region_c_name": ["xi", "upsilon", "zeta"],
     "extra": ["5", "5", "5"],
     "geometry": [
-        "POLYGON ((-1 -1, 1 -1, 1 -0.33333, -1 -0.33333, -1 -1))",
-        "POLYGON ((-1 -0.33333, 1 -0.33333, 1 0.33333, -1 0.33333, -1 -0.33333))",
-        "POLYGON ((-1 0.33333, 1 0.33333, 1 1, -1 1, -1 0.33333))",
+        f"POLYGON ((-1 -1, 1 -1, 1 -{QUARTER}, -1 -{QUARTER}, -1 -1))",
+        f"POLYGON ((-1 -{QUARTER}, 1 -{QUARTER}, 1 {QUARTER}, -1 {QUARTER}, -1 -{QUARTER}))",
+        f"POLYGON ((-1 {QUARTER}, 1 {QUARTER}, 1 1, -1 1, -1 {QUARTER}))",
     ],
 }
 
 REGIONS = Literal["region_a", "region_b", "region_c"]
+
+REDISTRIBUTE_MAPPING_A_TO_B = pl.DataFrame(
+    {
+        "region_a": ["M", "M", "N", "N", "O", "O", "P", "P", None, None],
+        "region_b": ["A", "B", "A", "C", "A", "B", "A", "C", "C", "B"],
+        "mapping": [0.25, 0.75, 0.25, 0.75, 0.75, 0.25, 0.75, 0.25, 1.0, 1.0],
+    },
+    schema=pl.Schema({"region_a": pl.String, "region_b": pl.String, "mapping": pl.Float64}),
+)
+REDISTRIBUTE_MAPPING_A_TO_C = pl.DataFrame(
+    {
+        "region_a": ["M", "M", "N", "N", "O", "O", "P", "P"],
+        "region_c": ["Y", "Z", "Y", "Z", "X", "Y", "X", "Y"],
+        "mapping": [QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, QUARTER],
+    },
+    schema=pl.Schema({"region_a": pl.String, "region_c": pl.String, "mapping": pl.Float64}),
+)
+
+REDISTRIBUTE_MAPPING_B_TO_C = pl.DataFrame(
+    {
+        "region_b": ["A", "A", "A", "B", "B", "B", "C", "C", "C", "C", "B"],
+        "region_c": ["X", "Y", "Z", "X", "Y", "Z", "X", "Y", "Z", None, None],
+        "mapping": [1.21875, 0.5, 0.28125, 0.140625, 0.25, 0.609375, 0.140625, 0.25, 0.609375, 1.0, 1.0],
+    },
+    schema=pl.Schema({"region_b": pl.String, "region_c": pl.String, "mapping": pl.Float64}),
+)
 
 
 class RegionMocked:
