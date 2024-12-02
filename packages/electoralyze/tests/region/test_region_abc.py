@@ -61,8 +61,13 @@ def test_region_fixture_import(region: RegionMocked):
         region.RegionB.get_raw_geometry().pipe(to_geopandas),
         read_true_geometry("region_b", raw=True).pipe(to_geopandas),
     )
+    gpd.testing.assert_geodataframe_equal(
+        region.RegionC.get_raw_geometry().pipe(to_geopandas),
+        read_true_geometry("region_c", raw=True).pipe(to_geopandas),
+    )
     pl.testing.assert_frame_equal(region.RegionA.get_raw_metadata(), read_true_metadata("region_a"))
     pl.testing.assert_frame_equal(region.RegionB.get_raw_metadata(), read_true_metadata("region_b"))
+    pl.testing.assert_frame_equal(region.RegionC.get_raw_metadata(), read_true_metadata("region_c"))
 
 
 def test_region_fixture_process(region: RegionMocked):
@@ -75,9 +80,14 @@ def test_region_fixture_process(region: RegionMocked):
         region.RegionB.geometry  # noqa:B018
     with pytest.raises(FileNotFoundError):
         region.RegionB.metadata  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.RegionC.geometry  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.RegionC.metadata  # noqa:B018
 
     region.RegionA.process_raw()
     region.RegionB.process_raw()
+    region.RegionC.process_raw()
 
     gpd.testing.assert_geodataframe_equal(
         region.RegionA.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
@@ -85,9 +95,13 @@ def test_region_fixture_process(region: RegionMocked):
     gpd.testing.assert_geodataframe_equal(
         region.RegionB.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
     )
+    gpd.testing.assert_geodataframe_equal(
+        region.RegionC.geometry.pipe(to_geopandas), read_true_geometry("region_c").pipe(to_geopandas)
+    )
 
     pl.testing.assert_frame_equal(region.RegionA.metadata, read_true_metadata("region_a"))
     pl.testing.assert_frame_equal(region.RegionB.metadata, read_true_metadata("region_b"))
+    pl.testing.assert_frame_equal(region.RegionC.metadata, read_true_metadata("region_c"))
 
 
 def test_region_fixture_still_processed(region: RegionMocked):
@@ -98,6 +112,10 @@ def test_region_fixture_still_processed(region: RegionMocked):
     gpd.testing.assert_geodataframe_equal(
         region.RegionB.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
     )
+    gpd.testing.assert_geodataframe_equal(
+        region.RegionC.geometry.pipe(to_geopandas), read_true_geometry("region_c").pipe(to_geopandas)
+    )
 
     pl.testing.assert_frame_equal(region.RegionA.metadata, read_true_metadata("region_a"))
     pl.testing.assert_frame_equal(region.RegionB.metadata, read_true_metadata("region_b"))
+    pl.testing.assert_frame_equal(region.RegionC.metadata, read_true_metadata("region_c"))

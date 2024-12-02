@@ -11,8 +11,8 @@ from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE, ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas, to_geopolars
 
-GEOMETRY_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/geometry.parquet")
-METADATA_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/metadata.parquet")
+GEOMETRY_FILE = os.path.join("{root_dir}/data/regions/{region}/geometry.parquet")
+METADATA_FILE = os.path.join("{root_dir}/data/regions/{region}/metadata.parquet")
 
 FULL_GEOMETRY_TTL_S = 300
 
@@ -101,6 +101,8 @@ class RegionABC(ABC):
     - Integration tests in `tests/integration/test_region.py: test_region_process_raw`.
     - Testing some region basics in `tests/region/test_region_abc.py: test_true_region_id_and_name`.
     """
+
+    _root_dir: str = ROOT_DIR
 
     @classproperty
     @abstractmethod
@@ -226,13 +228,13 @@ class RegionABC(ABC):
     @classproperty
     def metadata_file(cls) -> str:
         """Get the path to the metadata file."""
-        metadata_file = METADATA_FILE.format(region=cls.id)
+        metadata_file = METADATA_FILE.format(root_dir=cls._root_dir, region=cls.id)
         return metadata_file
 
     @classproperty
     def geometry_file(cls) -> str:
         """Get the path to the processed geometry file."""
-        geometry_file = GEOMETRY_FILE.format(region=cls.id)
+        geometry_file = GEOMETRY_FILE.format(root_dir=cls._root_dir, region=cls.id)
         return geometry_file
 
     #### PROCESSING #########

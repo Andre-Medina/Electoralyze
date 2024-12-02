@@ -33,7 +33,18 @@ REGION_B_JSON = {
     ],
 }
 
-REGIONS = Literal["region_a", "region_b"]
+REGION_C_JSON = {
+    "region_c": ["X", "Y", "Z"],
+    "region_c_name": ["xi", "upsilon", "zeta"],
+    "extra": ["5", "5", "5"],
+    "geometry": [
+        "POLYGON ((-1 -1, 1 -1, 1 -0.33333, -1 -0.33333, -1 -1))",
+        "POLYGON ((-1 -0.33333, 1 -0.33333, 1 0.33333, -1 0.33333, -1 -0.33333))",
+        "POLYGON ((-1 0.33333, 1 0.33333, 1 1, -1 1, -1 0.33333))",
+    ],
+}
+
+REGIONS = Literal["region_a", "region_b", "region_c"]
 
 
 class RegionMocked:
@@ -41,10 +52,12 @@ class RegionMocked:
 
     RegionA: RegionABC
     RegionB: RegionABC
+    RegionC: RegionABC
 
-    def __init__(self, region_a, region_b):
+    def __init__(self, *, region_a, region_b, region_c):
         self.RegionA = region_a
         self.RegionB = region_b
+        self.RegionC = region_c
 
 
 @pytest.fixture(scope="module")
@@ -62,33 +75,25 @@ def region():
     with tempfile.TemporaryDirectory() as temp_dir:
         region_a_shape = f"{temp_dir}/raw_geometry/data_a/shape.shp"
         region_b_shape = f"{temp_dir}/raw_geometry/data_b/shape.shp"
-        metadata_file_ = f"{temp_dir}" + "/metadata/{region}.parquet"
-        geometry_file_ = f"{temp_dir}" + "/geometry/{region}.parquet"
+        region_c_shape = f"{temp_dir}/raw_geometry/data_c/shape.shp"
 
         os.makedirs(f"{temp_dir}/raw_geometry/data_a", exist_ok=True)
         os.makedirs(f"{temp_dir}/raw_geometry/data_b", exist_ok=True)
-        os.makedirs(f"{temp_dir}/metadata", exist_ok=True)
-        os.makedirs(f"{temp_dir}/geometry", exist_ok=True)
+        os.makedirs(f"{temp_dir}/raw_geometry/data_c", exist_ok=True)
+        # os.makedirs(f"{temp_dir}/metadata", exist_ok=True)
+        # os.makedirs(f"{temp_dir}/geometry", exist_ok=True)
 
         region_a_gdf = pl.DataFrame(REGION_A_JSON).with_columns(geometry=st.from_wkt("geometry"))
         region_a_gdf.pipe(to_geopandas).to_file(region_a_shape, driver="ESRI Shapefile")
         region_b_gdf = pl.DataFrame(REGION_B_JSON).with_columns(geometry=st.from_wkt("geometry"))
         region_b_gdf.pipe(to_geopandas).to_file(region_b_shape, driver="ESRI Shapefile")
+        region_c_gdf = pl.DataFrame(REGION_C_JSON).with_columns(geometry=st.from_wkt("geometry"))
+        region_c_gdf.pipe(to_geopandas).to_file(region_c_shape, driver="ESRI Shapefile")
 
         class RegionMockedABC(RegionABC):
             """Mocked region ABC."""
 
-            @classproperty
-            def metadata_file(self) -> str:
-                """Get the path to the metadata file."""
-                metadata_file = metadata_file_.format(region=self.id)
-                return metadata_file
-
-            @classproperty
-            def geometry_file(self) -> str:
-                """Get the path to the processed geometry file."""
-                geometry_file = geometry_file_.format(region=self.id)
-                return geometry_file
+            _root_dir = temp_dir
 
             @classmethod
             def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
@@ -130,7 +135,20 @@ def region():
                 """Raw file."""
                 return region_b_shape
 
-        region_class = RegionMocked(region_a=RegionA, region_b=RegionB)
+        class RegionC(RegionMockedABC):
+            """RegionC for testing."""
+
+            @classproperty
+            def id(self) -> str:
+                """Id for region_c."""
+                return "region_c"
+
+            @classproperty
+            def raw_geometry_file(self) -> str:
+                """Raw file."""
+                return region_c_shape
+
+        region_class = RegionMocked(region_a=RegionA, region_b=RegionB, region_c=RegionC)
 
         yield region_class
 
@@ -142,6 +160,8 @@ def read_true_geometry(region_id: REGIONS, /, *, raw: bool = False) -> st.GeoDat
             region_json = REGION_A_JSON
         case "region_b":
             region_json = REGION_B_JSON
+        case "region_c":
+            region_json = REGION_C_JSON
         case _:
             raise ValueError(f"Unknown region {region_id}")
 
@@ -163,6 +183,9 @@ def read_true_metadata(region_id: REGIONS, /) -> pl.DataFrame:
         case "region_b":
             region_json = REGION_B_JSON
             region_name = "region_b_name"
+        case "region_c":
+            region_json = REGION_C_JSON
+            region_name = "region_c_name"
         case _:
             raise ValueError(f"Unknown region {region_id}")
 
