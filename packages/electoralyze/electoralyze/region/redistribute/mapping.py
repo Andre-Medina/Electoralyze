@@ -16,6 +16,10 @@ def get_region_mapping_base(
 ) -> pl.DataFrame:
     """Get region mapping base.
 
+    Parameters
+    ----------
+    refer to `redistribute.py::redistribute`
+
     Returns
     -------
     pl.DataFrame, mapping from region_from to region_to.
@@ -72,6 +76,10 @@ def create_region_mapping_base(
     save_data: bool = True,
 ) -> pl.DataFrame:
     """Create region mapping base, saves data locally if `save_data = True`.
+
+    Parameters
+    ----------
+    refer to `redistribute.py::redistribute`
 
     Returns
     -------
