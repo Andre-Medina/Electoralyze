@@ -11,8 +11,10 @@ from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE, ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas, to_geopolars
 
-GEOMETRY_FILE = os.path.join("{root_dir}/data/regions/{region}/geometry.parquet")
-METADATA_FILE = os.path.join("{root_dir}/data/regions/{region}/metadata.parquet")
+GEOMETRY_FILE = "{root_dir}/data/regions/{region}/geometry.parquet"
+METADATA_FILE = "{root_dir}/data/regions/{region}/metadata.parquet"
+_REDISTRIBUTE_FILE = "{root_dir}/data/regions/redistribute/{mapping}/{region_a}_{region_b}.parquet"
+
 
 FULL_GEOMETRY_TTL_S = 300
 
@@ -236,6 +238,15 @@ class RegionABC(ABC):
         """Get the path to the processed geometry file."""
         geometry_file = GEOMETRY_FILE.format(root_dir=cls._root_dir, region=cls.id)
         return geometry_file
+
+    @classproperty
+    def redistribute_file(cls) -> str:
+        """Redistribute file, still needs to be formatted with other variables.
+
+        Needed to be defined here to pass `cls._root_dir`.
+        """
+        redistribute_file = _REDISTRIBUTE_FILE.format(root_dir=cls._root_dir)
+        return redistribute_file
 
     #### PROCESSING #########
 

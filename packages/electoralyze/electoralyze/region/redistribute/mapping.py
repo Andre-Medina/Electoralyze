@@ -4,7 +4,7 @@ import polars as pl
 import polars_st as st
 
 from ..region_abc import RegionABC
-from .utils import MAPPING_OPTIONS, REDISTRIBUTE_FILE
+from .utils import MAPPING_OPTIONS
 
 
 def get_region_mapping_base(
@@ -58,8 +58,8 @@ def create_region_mapping_base(
     WIP.
     """
     if redistribute_with_full:
-        geometry_from: st.GeoDataFrame = region_from.get_raw_geometry().rename({"geometry", "geometry_from"})
-        geometry_to: st.GeoDataFrame = region_from.get_raw_geometry().rename({"geometry", "geometry_from"})
+        geometry_from: st.GeoDataFrame = region_from.get_raw_geometry()
+        geometry_to: st.GeoDataFrame = region_from.get_raw_geometry()
     else:
         geometry_from: st.GeoDataFrame = region_from.geometry
         geometry_to: st.GeoDataFrame = region_to.geometry
@@ -83,13 +83,25 @@ def _create_intersection_area_mapping(
     geometry_to: st.GeoDataFrame,
 ) -> pl.DataFrame:
     """Create mapping from one region to another based on intersection area."""
-    geometry_combined = geometry_from.join(geometry_to, on="geometry", how="cross")
+    geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
+        geometry_to.rename({"geometry": "geometry_to"}), how="cross"
+    )
     intersection_area = geometry_combined.select(
         pl.exclude("geometry_from", "geometry_to"),
         st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
-    )
+    ).filter(pl.col("intersection_area") != 0)
 
     return intersection_area
+
+
+def _get_remaining_area(
+    region_id: str,
+    geometry: st.GeoDataFrame,
+    intersection_area: pl.DataFrame,
+) -> pl.DataFrame:
+    """Find remaining area which hasnt been assigned to another region."""
+    # alt_region_id
+    pass
 
 
 def _create_centroid_distance_mapping(
@@ -108,7 +120,7 @@ def _get_region_mapping_file(
 ) -> str:
     """Returns the path to the mapping file for the given region."""
     regions = list({region_from.id, region_to.id})
-    mapping_file = REDISTRIBUTE_FILE.format(
+    mapping_file = region_from._redistribute_file.format(
         mapping=mapping,
         region_a=regions[0],
         region_b=regions[1],
