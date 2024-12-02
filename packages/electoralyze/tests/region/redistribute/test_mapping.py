@@ -27,7 +27,7 @@ from polars import testing  # noqa: F401
 def test_create_intersection_area_mapping(
     _name: str, region_id_from: str, region_id_to: str, expected: pl.DataFrame, region: RegionMocked
 ):
-    """Test region fixture keeps saved data."""
+    """Test cross section area is correct."""
     intersection_area_mapping = _create_intersection_area_mapping(
         geometry_from=region.from_id(region_id_from).geometry,
         geometry_to=region.from_id(region_id_to).geometry,

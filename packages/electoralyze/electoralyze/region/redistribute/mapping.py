@@ -21,6 +21,7 @@ def get_region_mapping_base(
     pl.DataFrame, mapping from region_from to region_to.
     E.g.
     ```
+    >>> get_region_mapping_base(region.region_a, region.region_b, mapping_method="intersection_area")
     shape: (10, 3)
     ┌──────────┬──────────┬──────────┐
     │ region_a ┆ region_b ┆ mapping  │
@@ -70,9 +71,11 @@ def create_region_mapping_base(
     redistribute_with_full: bool = True,
     save_data: bool = True,
 ) -> pl.DataFrame:
-    """Create region mapping base.
+    """Create region mapping base, saves data locally if `save_data = True`.
 
-    WIP.
+    Returns
+    -------
+    pl.DataFrame, mapping from region_from to region_to if needed
     """
     if redistribute_with_full:
         geometry_from: st.GeoDataFrame = region_from.get_raw_geometry()

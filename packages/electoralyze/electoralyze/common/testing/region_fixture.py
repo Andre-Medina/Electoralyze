@@ -13,6 +13,16 @@ from electoralyze.region.region_abc import RegionABC
 QUARTER = 1 / 4
 
 REGION_A_JSON = {
+    # Four quadrants
+    # ┌─────────1─────────┐
+    # │         │         │
+    # │    M    │    N    │
+    # │         │         │
+    # -1─────────O─────────1
+    # │         │         │
+    # │    O    │    P    │
+    # │         │         │
+    # └────────-1─────────┘
     "region_a": ["M", "N", "O", "P"],
     "region_a_name": ["Mew", "New", "Omega", "Phi"],
     "extra": ["1", "2", "3", "4"],
@@ -25,6 +35,14 @@ REGION_A_JSON = {
 }
 
 REGION_B_JSON = {
+    # Three Triangles
+    # \─────────────/1\─────────────/
+    #  \     B     / A \     C     /
+    #   \         /     \         /
+    # -2  \  -1   /   O   \   1   /  2
+    #     \     /         \     /
+    #      \   /           \   /
+    #       \ /─────-1──────\ /
     "region_b": ["A", "B", "C"],
     "region_b_name": ["Alpha", "Bravo", "Charlie"],
     "extra": ["1", "2", "3"],
@@ -36,6 +54,16 @@ REGION_B_JSON = {
 }
 
 REGION_C_JSON = {
+    # Three horizontal rectangles
+    # ┌─────────1─────────┐
+    # │    Z              │
+    # ├───────────────────┤
+    # │                   │
+    # -1    Y    O         1
+    # │                   │
+    # ├───────────────────┤
+    # │    X              │
+    # └────────-1─────────┘
     "region_c": ["X", "Y", "Z"],
     "region_c_name": ["xi", "upsilon", "zeta"],
     "extra": ["5", "5", "5"],
