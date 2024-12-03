@@ -61,7 +61,7 @@ def region():
         assert region.RegionB.id == "region_b"
     ```
     """
-    with tempfile.TemporaryDirectory as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         region_a_shape = f"{temp_dir}/raw_geometry/data_a/shape.shp"
         region_b_shape = f"{temp_dir}/raw_geometry/data_b/shape.shp"
         metadata_file_ = f"{temp_dir}" + "/metadata/{region}.parquet"
