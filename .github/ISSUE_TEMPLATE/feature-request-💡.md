@@ -1,8 +1,8 @@
 ---
-name: Feature request
-about: ''
-title: '[Feature]: '
-labels: ['new', "feature"]
+name: "Feature request \U0001F4A1"
+about: Have a great idea? Tell us!
+title: "[Feature]: "
+labels: feature, new
 assignees: ''
 
 ---

@@ -22,7 +22,7 @@ jobs:
       - name: Validate branch name
         env:
           BRANCH_NAME: ${{ github.ref_name }}
-          VALID_BRANCH_REGEX: '^(feature|bugfix|release|main)/[0-9]+/[a-z0-9_]+$'
+          VALID_BRANCH_REGEX: '^(feature|bugfix|release|main)/[0-9]+/[a-z0-9_-]+$'
         run: |
           echo "Branch Name: $BRANCH_NAME"
           if [[ ! "$BRANCH_NAME" =~ $VALID_BRANCH_REGEX ]]; then
