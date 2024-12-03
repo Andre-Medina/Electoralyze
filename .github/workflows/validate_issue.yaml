@@ -16,16 +16,16 @@ jobs:
         id: validate
         env:
           ISSUE_TITLE: ${{ github.event.issue.title }}
-          VALID_TITLE_REGEX: '^\[(Feature|Bug)\](\[[a-zA-Z]+\])+: .+$'
+          VALID_TITLE_REGEX: '^\[(Feature|Bug)\](\[[a-zA-Z]+\]): .+$'
         run: |
           echo "Issue Title: $ISSUE_TITLE"
-          if [[ ! "$ISSUE_TITLE" =~ $VALID_TITLE_REGEX ]]; then
-            echo "Invalid title"
-            echo "valid=false" >> $GITHUB_OUTPUT
-          else
+          if [[ "$ISSUE_TITLE" =~ $VALID_TITLE_REGEX ]]; then
             echo "Valid title"
             echo "valid=true" >> $GITHUB_OUTPUT
-
+          else
+            echo "Invalid title"
+            echo "valid=false" >> $GITHUB_OUTPUT
+          fi
       - name: Comment on issue
         if: steps.validate.outputs.valid == 'false'
         uses: actions/github-script@v7

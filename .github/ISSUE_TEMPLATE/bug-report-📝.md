@@ -1,8 +1,8 @@
 ---
-name: Bug report
-about: ''
-title: '[Bug]: '
-labels: ['new', "bug"]
+name: "Bug report \U0001F4DD"
+about: Found a bug? Report it!
+title: "[Bug]: "
+labels: bug, new
 assignees: ''
 
 ---
