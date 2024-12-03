@@ -126,7 +126,7 @@ class RegionMocked:
             region_.remove_processed_files()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def region():
     """Fixture to create a mocked region for testing.
 
