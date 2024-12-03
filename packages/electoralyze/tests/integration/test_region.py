@@ -18,6 +18,8 @@ from polars import testing as pl_testing  # noqa: F401
 )
 def test_region_process_raw(region_class):
     """Test recreating region geometry and compares it to whats stored."""
+    # assert os.path.isfile(region.SA1_2021.raw_geometry_file), "Cant find SA1_2021 raw data." Issue #10
+
     with tempfile.TemporaryDirectory(delete=False) as temp_dir:
         #### Getting existing data ####
 

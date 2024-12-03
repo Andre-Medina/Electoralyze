@@ -1,6 +1,4 @@
 import os
-
-# import shutil
 import tempfile
 from typing import Literal
 
@@ -135,9 +133,6 @@ def region():
         region_class = RegionMocked(region_a=RegionA, region_b=RegionB)
 
         yield region_class
-
-    # FIXME: This should be auto deleted. issue #9
-    # shutil.rmtree(temp_dir)
 
 
 def read_true_geometry(region_id: REGIONS, /, *, raw: bool = False) -> st.GeoDataFrame:

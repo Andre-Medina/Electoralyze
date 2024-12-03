@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `packages/ui`
 - `packages/electoralyze`
+- `packages/electoralive`
+- Info on how to contribute.
 - Base UI including navigation and page creation API.
 - Base map on the UI for viewing geometric data.
 - RegionABC to create a API for different regions

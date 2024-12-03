@@ -32,7 +32,6 @@ def test_true_region_file_names():
         "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp"
     ), "Bad region raw geom file path"
 
-    # assert os.path.isfile(region.SA1_2021.raw_geometry_file), "Cant find SA1_2021 raw data."
     assert os.path.isfile(region.SA1_2021.geometry_file), "Cant find SA1_2021 processed geom."
     assert os.path.isfile(region.SA1_2021.metadata_file), "Cant find SA1_2021 processed metadata."
 
