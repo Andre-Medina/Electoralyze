@@ -1,5 +1,6 @@
 import os
-import shutil
+
+# import shutil
 import tempfile
 from typing import Literal
 
@@ -60,7 +61,7 @@ def region():
         assert region.RegionB.id == "region_b"
     ```
     """
-    with tempfile.TemporaryDirectory(delete=False) as temp_dir:
+    with tempfile.TemporaryDirectory as temp_dir:
         region_a_shape = f"{temp_dir}/raw_geometry/data_a/shape.shp"
         region_b_shape = f"{temp_dir}/raw_geometry/data_b/shape.shp"
         metadata_file_ = f"{temp_dir}" + "/metadata/{region}.parquet"
@@ -136,7 +137,7 @@ def region():
         yield region_class
 
     # FIXME: This should be auto deleted. issue #9
-    shutil.rmtree(temp_dir)
+    # shutil.rmtree(temp_dir)
 
 
 def read_true_geometry(region_id: REGIONS, /, *, raw: bool = False) -> st.GeoDataFrame:
