@@ -47,7 +47,7 @@ class RegionMocked:
         self.RegionB = region_b
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def region():
     """Fixture to create a mocked region for testing.
 
