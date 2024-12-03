@@ -5,6 +5,7 @@ import polars as pl
 import pytest
 from electoralyze import region
 from electoralyze.common.geometry import to_geopandas
+from electoralyze.region.region_abc import RegionABC
 from geopandas import testing as gpd_testing  # noqa: F401
 from polars import testing as pl_testing  # noqa: F401
 
@@ -16,7 +17,7 @@ from polars import testing as pl_testing  # noqa: F401
         (region.SA2_2021),
     ],
 )
-def test_region_process_raw(region_class):
+def test_region_process_raw(region_class: RegionABC):
     """Test recreating region geometry and compares it to whats stored."""
     # assert os.path.isfile(region.SA1_2021.raw_geometry_file), "Cant find SA1_2021 raw data." Issue #10
 
@@ -29,8 +30,7 @@ def test_region_process_raw(region_class):
         geometry_original = region_class.geometry
         metadata_original = region_class.metadata
 
-        region_class._geometry_cached.cache_clear()
-        region_class._metadata_cached.cache_clear()
+        region_class.cache_clear()
 
         #### Making temp folders #####
 

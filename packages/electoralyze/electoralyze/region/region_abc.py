@@ -128,13 +128,6 @@ class RegionABC(ABC):
         name_column = f"{cls.id}_name"
         return name_column
 
-    @classmethod
-    @cached(LRUCache(maxsize=32))
-    def get_ids(cls) -> set:
-        """Gets set of all ids for this region."""
-        ids = set(cls.metadata[cls.id].unique().to_list())
-        return ids
-
     #### READING #############
     @classproperty
     def geometry(cls) -> st.GeoDataFrame:
@@ -248,14 +241,6 @@ class RegionABC(ABC):
         redistribute_file = _REDISTRIBUTE_FILE.format(root_dir=cls._root_dir)
         return redistribute_file
 
-    @classmethod
-    def remove_processed_files(cls):
-        """Remove processed files."""
-        if os.path.isfile(cls.geometry_file):
-            os.remove(cls.geometry_file)
-        if os.path.isfile(cls.metadata_file):
-            os.remove(cls.metadata_file)
-
     #### PROCESSING #########
 
     @classmethod
@@ -361,3 +346,28 @@ class RegionABC(ABC):
         geometry_raw_gpd = pyogrio.read_dataframe(cls.raw_geometry_file)
         geometry_raw_st = to_geopolars(geometry_raw_gpd)
         return geometry_raw_st
+
+    ### UTILS ########
+
+    @classmethod
+    @cached(LRUCache(maxsize=32))
+    def get_ids(cls) -> set:
+        """Gets set of all ids for this region."""
+        ids = set(cls.metadata[cls.id].unique().to_list())
+        return ids
+
+    @classmethod
+    def remove_processed_files(cls):
+        """Remove processed files."""
+        if os.path.isfile(cls.geometry_file):
+            os.remove(cls.geometry_file)
+        if os.path.isfile(cls.metadata_file):
+            os.remove(cls.metadata_file)
+        cls.cache_clear()
+
+    @classmethod
+    def cache_clear(cls):
+        """Clears the cache of class methods where data is cached."""
+        cls._geometry_cached.cache_clear()
+        cls._metadata_cached.cache_clear()
+        cls._get_geometry_with_metadata.cache_clear()

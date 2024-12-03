@@ -124,6 +124,7 @@ class RegionMocked:
         """Remove processed files."""
         for region_ in (self.region_a, self.region_b, self.region_c):
             region_.remove_processed_files()
+            region_.cache_clear()
 
 
 @pytest.fixture(scope="session")
