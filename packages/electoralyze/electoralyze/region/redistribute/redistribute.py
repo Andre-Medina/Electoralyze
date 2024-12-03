@@ -8,9 +8,9 @@ from .utils import AGGREGATION_OPTIONS, MAPPING_OPTIONS, WEIGHT_OPTIONS
 def redistribute(
     data_by_from: pl.DataFrame,
     *,
-    index_columns: list[str] | None,
     region_from: RegionABC,
     region_to: RegionABC,
+    index_columns: list[str] | None = None,
     region_through: RegionABC | None = None,
     weights: WEIGHT_OPTIONS | None = None,
     mapping: MAPPING_OPTIONS | pl.DataFrame = "intersection_area",
@@ -49,7 +49,14 @@ def redistribute(
     mapping_weights = weights
     aggregation_method = aggregation
     index_columns = index_columns or []
+
+    if region_from.id not in data_by_from.columns:
+        raise ValueError(f"From region column `{region_from.id}` not found in data_by_from.")
+
     data_columns = list(set(data_by_from.columns) - set(index_columns) - {region_from.id, region_to.id})
+
+    if not data_columns:
+        raise ValueError("No data columns found in data_by_from.")
 
     if region_through:
         data_by_through = redistribute(
@@ -118,14 +125,11 @@ def _get_region_mapping(
     ------
     ValueError, _description_
     """
-    mapping_column: str
     mapping_base: pl.DataFrame
 
     if isinstance(mapping_method, pl.DataFrame):
-        mapping_column = "mapping"
         mapping_base = mapping_method
     else:
-        mapping_column = mapping_method
         mapping_base = get_region_mapping_base(
             region_from=region_from,
             region_to=region_to,
@@ -133,18 +137,18 @@ def _get_region_mapping(
             redistribute_with_full=redistribute_with_full,
         )
 
-    if set(mapping_base.columns) != {region_from.id, region_to.id, mapping_column}:
-        raise ValueError(f"Mapping should have columns `{region_from.id}`, `{region_to.id}`, and `{mapping_column}`.")
+    if set(mapping_base.columns) != {region_from.id, region_to.id, "mapping"}:
+        raise ValueError(f"Mapping should have columns `{region_from.id}`, `{region_to.id}`, and `{"mapping"}`.")
 
     if mapping_weights is None:
-        region_mapping = _distribute(mapping_base, region_id=region_to.id, mapping_column=mapping_column)
+        region_mapping = _distribute(mapping_base, region_id=region_from.id, mapping_column="mapping")
     else:
         weights_per_region = _get_weights(region_from=region_from, mapping_weights=mapping_weights)
 
         mapping_with_weights = mapping_base.join(weights_per_region, on=region_from.id)
 
         mapping_with_distributed_weights = mapping_with_weights.pipe(
-            _distribute, region_id=region_from.id, mapping_column=mapping_column
+            _distribute, region_id=region_from.id, mapping_column="mapping"
         ).select(
             region_from.id, region_to.id, pl.col(mapping_weights).mul(pl.col("ratio")).alias("distributed_weights")
         )
@@ -185,7 +189,7 @@ def _combine(
     """Combines mapping and distributed data."""
     data_distributed = data_by_from.join(region_mapping, on=region_from.id).select(
         pl.exclude(data_columns),
-        [pl.col(data_column).mul(pl.col("ratio")) for data_column in data_columns],
+        *[pl.col(data_column).mul(pl.col("ratio")) for data_column in data_columns],
     )
 
     return data_distributed
@@ -217,6 +221,9 @@ def _aggregate(
         case _:
             raise ValueError(f"Unknown aggregation method `{aggregation_method}`.")
 
-    data_by_to = data_distributed.group_by(region_to.id, index_columns).agg(aggregation_expressions)
+    if index_columns:
+        data_by_to = data_distributed.group_by(region_to.id, index_columns).agg(*aggregation_expressions)
+    else:
+        data_by_to = data_distributed.group_by(region_to.id).agg(*aggregation_expressions)
 
     return data_by_to

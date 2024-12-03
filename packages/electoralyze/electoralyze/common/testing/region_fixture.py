@@ -140,86 +140,105 @@ def region():
     ```
     """
     with tempfile.TemporaryDirectory() as temp_dir:
-        region_a_shape = f"{temp_dir}/raw_geometry/data_a/shape.shp"
-        region_b_shape = f"{temp_dir}/raw_geometry/data_b/shape.shp"
-        region_c_shape = f"{temp_dir}/raw_geometry/data_c/shape.shp"
-
-        os.makedirs(f"{temp_dir}/raw_geometry/data_a", exist_ok=True)
-        os.makedirs(f"{temp_dir}/raw_geometry/data_b", exist_ok=True)
-        os.makedirs(f"{temp_dir}/raw_geometry/data_c", exist_ok=True)
-
-        region_a_gdf = pl.DataFrame(REGION_A_JSON).with_columns(geometry=st.from_wkt("geometry"))
-        region_a_gdf.pipe(to_geopandas).to_file(region_a_shape, driver="ESRI Shapefile")
-        region_b_gdf = pl.DataFrame(REGION_B_JSON).with_columns(geometry=st.from_wkt("geometry"))
-        region_b_gdf.pipe(to_geopandas).to_file(region_b_shape, driver="ESRI Shapefile")
-        region_c_gdf = pl.DataFrame(REGION_C_JSON).with_columns(geometry=st.from_wkt("geometry"))
-        region_c_gdf.pipe(to_geopandas).to_file(region_c_shape, driver="ESRI Shapefile")
-
-        class RegionMockedABC(RegionABC):
-            """Mocked region ABC."""
-
-            _root_dir = temp_dir
-
-            @classmethod
-            def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
-                """Structure data."""
-                geometry_with_metadata = geometry_raw.select(
-                    pl.col(cls.id),
-                    pl.struct(
-                        pl.col(cls.name[0:10]).alias(cls.name),
-                        pl.col("extra").cast(pl.Int32),
-                    ).alias("metadata"),
-                    pl.col("geometry"),
-                )
-
-                return geometry_with_metadata
-
-        class RegionA(RegionMockedABC):
-            """RegionA for testing."""
-
-            @classproperty
-            def id(self) -> str:
-                """Id for region_a."""
-                return "region_a"
-
-            @classproperty
-            def raw_geometry_file(self) -> str:
-                """Raw file."""
-                return region_a_shape
-
-        class RegionB(RegionMockedABC):
-            """RegionB for testing."""
-
-            @classproperty
-            def id(self) -> str:
-                """Id for region_b."""
-                return "region_b"
-
-            @classproperty
-            def raw_geometry_file(self) -> str:
-                """Raw file."""
-                return region_b_shape
-
-        class RegionC(RegionMockedABC):
-            """RegionC for testing."""
-
-            @classproperty
-            def id(self) -> str:
-                """Id for region_c."""
-                return "region_c"
-
-            @classproperty
-            def raw_geometry_file(self) -> str:
-                """Raw file."""
-                return region_c_shape
-
-        region_class = RegionMocked(region_a=RegionA, region_b=RegionB, region_c=RegionC)
-
-        region_class.region_a.process_raw()
-        region_class.region_b.process_raw()
-        region_class.region_c.process_raw()
-
+        region_class = create_fake_regions(temp_dir)
         yield region_class
+
+
+def create_fake_regions(temp_dir: str):
+    """Create fake regions.
+
+    Example
+    -------
+    ```python
+    >>> temp_dir = tempfile.TemporaryDirectory(delete = False)
+    >>> fake_region = create_fake_regions(temp_dir.name)
+    ...
+    >>> import shutil
+    >>> shutil.rmtree(temp_dir.name)
+    ```
+    """
+    if not isinstance(temp_dir, str):
+        raise TypeError("temp_dir must be a string")
+    region_a_shape = f"{temp_dir}/raw_geometry/data_a/shape.shp"
+    region_b_shape = f"{temp_dir}/raw_geometry/data_b/shape.shp"
+    region_c_shape = f"{temp_dir}/raw_geometry/data_c/shape.shp"
+
+    os.makedirs(f"{temp_dir}/raw_geometry/data_a", exist_ok=True)
+    os.makedirs(f"{temp_dir}/raw_geometry/data_b", exist_ok=True)
+    os.makedirs(f"{temp_dir}/raw_geometry/data_c", exist_ok=True)
+
+    region_a_gdf = pl.DataFrame(REGION_A_JSON).with_columns(geometry=st.from_wkt("geometry"))
+    region_a_gdf.pipe(to_geopandas).to_file(region_a_shape, driver="ESRI Shapefile")
+    region_b_gdf = pl.DataFrame(REGION_B_JSON).with_columns(geometry=st.from_wkt("geometry"))
+    region_b_gdf.pipe(to_geopandas).to_file(region_b_shape, driver="ESRI Shapefile")
+    region_c_gdf = pl.DataFrame(REGION_C_JSON).with_columns(geometry=st.from_wkt("geometry"))
+    region_c_gdf.pipe(to_geopandas).to_file(region_c_shape, driver="ESRI Shapefile")
+
+    class RegionMockedABC(RegionABC):
+        """Mocked region ABC."""
+
+        _root_dir = temp_dir
+
+        @classmethod
+        def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
+            """Structure data."""
+            geometry_with_metadata = geometry_raw.select(
+                pl.col(cls.id),
+                pl.struct(
+                    pl.col(cls.name[0:10]).alias(cls.name),
+                    pl.col("extra").cast(pl.Int32),
+                ).alias("metadata"),
+                pl.col("geometry"),
+            )
+
+            return geometry_with_metadata
+
+    class RegionA(RegionMockedABC):
+        """RegionA for testing."""
+
+        @classproperty
+        def id(self) -> str:
+            """Id for region_a."""
+            return "region_a"
+
+        @classproperty
+        def raw_geometry_file(self) -> str:
+            """Raw file."""
+            return region_a_shape
+
+    class RegionB(RegionMockedABC):
+        """RegionB for testing."""
+
+        @classproperty
+        def id(self) -> str:
+            """Id for region_b."""
+            return "region_b"
+
+        @classproperty
+        def raw_geometry_file(self) -> str:
+            """Raw file."""
+            return region_b_shape
+
+    class RegionC(RegionMockedABC):
+        """RegionC for testing."""
+
+        @classproperty
+        def id(self) -> str:
+            """Id for region_c."""
+            return "region_c"
+
+        @classproperty
+        def raw_geometry_file(self) -> str:
+            """Raw file."""
+            return region_c_shape
+
+    region_class = RegionMocked(region_a=RegionA, region_b=RegionB, region_c=RegionC)
+
+    region_class.region_a.process_raw()
+    region_class.region_b.process_raw()
+    region_class.region_c.process_raw()
+
+    return region_class
 
 
 def read_true_geometry(region_id: REGIONS, /, *, raw: bool = False) -> st.GeoDataFrame:
