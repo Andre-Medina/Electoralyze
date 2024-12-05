@@ -20,62 +20,62 @@ REGIONS = Literal[FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID, THREE_RECTAN
 REGION_IDS = [FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID]
 REGION_JSONS = {
     FOUR_SQUARE_REGION_ID: {
-        # Four quadrants
-        # ┌─────────1─────────┐
-        # │         │         │
-        # │    M    │    N    │
-        # │         │         │
-        # -1─────────O─────────1
-        # │         │         │
-        # │    O    │    P    │
-        # │         │         │
-        # └────────-1─────────┘
+        #  Four quadrants
+        #  ┌─────────4─────────┐
+        #  │         │         │
+        #  │    M    │    N    │
+        #  │         │         │
+        # -4─────────O─────────4
+        #  │         │         │
+        #  │    O    │    P    │
+        #  │         │         │
+        #  └────────-4─────────┘
         FOUR_SQUARE_REGION_ID: ["M", "N", "O", "P"],
         f"{FOUR_SQUARE_REGION_ID}_name": ["Mew", "New", "Omega", "Phi"],
         "extra": ["1", "2", "3", "4"],
         "geometry": [
-            "POLYGON ((0 0, 0 1, -1 1, -1 0, 0 0))",
-            "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))",
-            "POLYGON ((0 0, 0 -1, -1 -1, -1 0, 0 0))",
-            "POLYGON ((0 0, 0 -1, 1 -1, 1 0, 0 0))",
+            "POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))",
+            "POLYGON ((0 0, 0 4, 4 4, 4 0, 0 0))",
+            "POLYGON ((0 0, 0 -4, -4 -4, -4 0, 0 0))",
+            "POLYGON ((0 0, 0 -4, 4 -4, 4 0, 0 0))",
         ],
     },
     THREE_TRIANGLES_REGION_ID: {
-        # Three Triangles
-        # \─────────────/1\─────────────/
-        #  \     B     / A \     C     /
-        #   \         /     \         /
-        # -2  \  -1   /   O   \   1   /  2
-        #     \     /         \     /
-        #      \   /           \   /
-        #       \ /─────-1──────\ /
+        #  Three Triangles
+        #  \─────────────/4\─────────────/
+        #   \     B     / A \     C     /
+        #    \         /     \         /
+        # -8  \  -4   /   O   \   4   /  8
+        #      \     /         \     /
+        #       \   /           \   /
+        #        \ /─────-4──────\ /
         THREE_TRIANGLES_REGION_ID: ["A", "B", "C"],
         f"{THREE_TRIANGLES_REGION_ID}_name": ["Alpha", "Bravo", "Charlie"],
         "extra": ["1", "2", "3"],
         "geometry": [
-            "POLYGON ((-1 -1, 0 1, 1 -1, -1 -1))",
-            "POLYGON ((-1 -1, 0 1, -2 1, -1 -1))",
-            "POLYGON ((1 -1, 0 1, 2 1, 1 -1))",
+            "POLYGON ((-4 -4, 0 4, 4 -4, -4 -4))",
+            "POLYGON ((-4 -4, 0 4, -8 4, -4 -4))",
+            "POLYGON ((4 -4, 0 4, 8 4, 4 -4))",
         ],
     },
     THREE_RECTANGLE_REGION_ID: {
-        # Three horizontal rectangles
-        # ┌─────────1─────────┐
-        # │    Z              │
-        # ├───────────────────┤
-        # │                   │
-        # -1    Y    O         1
-        # │                   │
-        # ├───────────────────┤
-        # │    X              │
-        # └────────-1─────────┘
+        #  Three horizontal rectangles
+        #  ┌─────────4─────────┐
+        #  │    Z              │
+        #  ├─────────2─────────┤
+        #  │                   │
+        # -4    Y    O         4
+        #  │                   │
+        #  ├─────────2─────────┤
+        #  │    X              │
+        #  └────────-4─────────┘
         THREE_RECTANGLE_REGION_ID: ["X", "Y", "Z"],
         f"{THREE_RECTANGLE_REGION_ID}_name": ["xi", "upsilon", "zeta"],
         "extra": ["5", "5", "5"],
         "geometry": [
-            f"POLYGON ((-1 -1, 1 -1, 1 -{QUARTER}, -1 -{QUARTER}, -1 -1))",
-            f"POLYGON ((-1 -{QUARTER}, 1 -{QUARTER}, 1 {QUARTER}, -1 {QUARTER}, -1 -{QUARTER}))",
-            f"POLYGON ((-1 {QUARTER}, 1 {QUARTER}, 1 1, -1 1, -1 {QUARTER}))",
+            "POLYGON ((-4 -4, 4 -4, 4 -2, -4 -2, -4 -4))",
+            "POLYGON ((-4 -2, 4 -2, 4 2, -4 2, -4 -2))",
+            "POLYGON ((-4 2, 4 2, 4 4, -4 4, -4 2))",
         ],
     },
 }
@@ -83,16 +83,16 @@ REGION_JSONS = {
 REDISTRIBUTE_MAPPINGS = {
     tuple({FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID}): pl.DataFrame(
         [
-            {FOUR_SQUARE_REGION_ID: "M", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: "M", THREE_TRIANGLES_REGION_ID: "B", "mapping": 0.75},
-            {FOUR_SQUARE_REGION_ID: "N", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: "N", THREE_TRIANGLES_REGION_ID: "C", "mapping": 0.75},
-            {FOUR_SQUARE_REGION_ID: "O", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.75},
-            {FOUR_SQUARE_REGION_ID: "O", THREE_TRIANGLES_REGION_ID: "B", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: "P", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.75},
-            {FOUR_SQUARE_REGION_ID: "P", THREE_TRIANGLES_REGION_ID: "C", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: None, THREE_TRIANGLES_REGION_ID: "C", "mapping": 1.0},
-            {FOUR_SQUARE_REGION_ID: None, THREE_TRIANGLES_REGION_ID: "B", "mapping": 1.0},
+            {FOUR_SQUARE_REGION_ID: "M", THREE_TRIANGLES_REGION_ID: "A", "mapping": 4.0},
+            {FOUR_SQUARE_REGION_ID: "M", THREE_TRIANGLES_REGION_ID: "B", "mapping": 12.0},
+            {FOUR_SQUARE_REGION_ID: "N", THREE_TRIANGLES_REGION_ID: "A", "mapping": 4.0},
+            {FOUR_SQUARE_REGION_ID: "N", THREE_TRIANGLES_REGION_ID: "C", "mapping": 12.0},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_TRIANGLES_REGION_ID: "A", "mapping": 12.0},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_TRIANGLES_REGION_ID: "B", "mapping": 4.0},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_TRIANGLES_REGION_ID: "A", "mapping": 12.0},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_TRIANGLES_REGION_ID: "C", "mapping": 4.0},
+            {FOUR_SQUARE_REGION_ID: None, THREE_TRIANGLES_REGION_ID: "B", "mapping": 16.0},
+            {FOUR_SQUARE_REGION_ID: None, THREE_TRIANGLES_REGION_ID: "C", "mapping": 16.0},
         ],
         schema=pl.Schema(
             {FOUR_SQUARE_REGION_ID: pl.String, THREE_TRIANGLES_REGION_ID: pl.String, "mapping": pl.Float64}
@@ -100,14 +100,14 @@ REDISTRIBUTE_MAPPINGS = {
     ),
     tuple({FOUR_SQUARE_REGION_ID, THREE_RECTANGLE_REGION_ID}): pl.DataFrame(
         [
-            {FOUR_SQUARE_REGION_ID: "N", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: "M", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: "O", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: "P", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
-            {FOUR_SQUARE_REGION_ID: "M", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.75},
-            {FOUR_SQUARE_REGION_ID: "N", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.75},
-            {FOUR_SQUARE_REGION_ID: "O", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.75},
-            {FOUR_SQUARE_REGION_ID: "P", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "M", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 8.0},
+            {FOUR_SQUARE_REGION_ID: "M", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 8.0},
+            {FOUR_SQUARE_REGION_ID: "N", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 8.0},
+            {FOUR_SQUARE_REGION_ID: "N", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 8.0},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_RECTANGLE_REGION_ID: "X", "mapping": 8.0},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 8.0},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_RECTANGLE_REGION_ID: "X", "mapping": 8.0},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 8.0},
         ],
         schema=pl.Schema(
             {FOUR_SQUARE_REGION_ID: pl.String, THREE_RECTANGLE_REGION_ID: pl.String, "mapping": pl.Float64}
@@ -115,17 +115,17 @@ REDISTRIBUTE_MAPPINGS = {
     ),
     tuple({THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID}): pl.DataFrame(
         [
-            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.5},
-            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
-            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
-            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "X", "mapping": 1.21875},
-            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.140625},
-            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.140625},
-            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.28125},
-            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.609375},
-            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.609375},
-            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: None, "mapping": 1.0},
-            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: None, "mapping": 1.0},
+            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "X", "mapping": 14.0},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "X", "mapping": 1.0},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "X", "mapping": 1.0},
+            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 16.0},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 8.0},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 8.0},
+            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 2.0},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 7.0},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 7.0},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: None, "mapping": 16.0},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: None, "mapping": 16.0},
         ],
         schema=pl.Schema(
             {THREE_TRIANGLES_REGION_ID: pl.String, THREE_RECTANGLE_REGION_ID: pl.String, "mapping": pl.Float64}
