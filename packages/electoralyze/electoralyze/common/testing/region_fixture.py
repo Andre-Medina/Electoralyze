@@ -82,31 +82,51 @@ REGION_JSONS = {
 
 REDISTRIBUTE_MAPPINGS = {
     tuple({FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID}): pl.DataFrame(
-        {
-            FOUR_SQUARE_REGION_ID: ["M", "M", "N", "N", "O", "O", "P", "P", None, None],
-            THREE_TRIANGLES_REGION_ID: ["A", "B", "A", "C", "A", "B", "A", "C", "C", "B"],
-            "mapping": [0.25, 0.75, 0.25, 0.75, 0.75, 0.25, 0.75, 0.25, 1.0, 1.0],
-        },
+        [
+            {FOUR_SQUARE_REGION_ID: "M", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: "M", THREE_TRIANGLES_REGION_ID: "B", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "N", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: "N", THREE_TRIANGLES_REGION_ID: "C", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_TRIANGLES_REGION_ID: "B", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_TRIANGLES_REGION_ID: "A", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_TRIANGLES_REGION_ID: "C", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: None, THREE_TRIANGLES_REGION_ID: "C", "mapping": 1.0},
+            {FOUR_SQUARE_REGION_ID: None, THREE_TRIANGLES_REGION_ID: "B", "mapping": 1.0},
+        ],
         schema=pl.Schema(
             {FOUR_SQUARE_REGION_ID: pl.String, THREE_TRIANGLES_REGION_ID: pl.String, "mapping": pl.Float64}
         ),
     ),
     tuple({FOUR_SQUARE_REGION_ID, THREE_RECTANGLE_REGION_ID}): pl.DataFrame(
-        {
-            FOUR_SQUARE_REGION_ID: ["M", "M", "N", "N", "O", "O", "P", "P"],
-            THREE_RECTANGLE_REGION_ID: ["Y", "Z", "Y", "Z", "X", "Y", "X", "Y"],
-            "mapping": [QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, QUARTER],
-        },
+        [
+            {FOUR_SQUARE_REGION_ID: "N", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: "M", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
+            {FOUR_SQUARE_REGION_ID: "M", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "N", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "O", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.75},
+            {FOUR_SQUARE_REGION_ID: "P", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.75},
+        ],
         schema=pl.Schema(
             {FOUR_SQUARE_REGION_ID: pl.String, THREE_RECTANGLE_REGION_ID: pl.String, "mapping": pl.Float64}
         ),
     ),
     tuple({THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID}): pl.DataFrame(
-        {
-            THREE_TRIANGLES_REGION_ID: ["A", "A", "A", "B", "B", "B", "C", "C", "C", "C", "B"],
-            THREE_RECTANGLE_REGION_ID: ["X", "Y", "Z", "X", "Y", "Z", "X", "Y", "Z", None, None],
-            "mapping": [1.21875, 0.5, 0.28125, 0.140625, 0.25, 0.609375, 0.140625, 0.25, 0.609375, 1.0, 1.0],
-        },
+        [
+            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.5},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "Y", "mapping": 0.25},
+            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "X", "mapping": 1.21875},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.140625},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "X", "mapping": 0.140625},
+            {THREE_TRIANGLES_REGION_ID: "A", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.28125},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.609375},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: "Z", "mapping": 0.609375},
+            {THREE_TRIANGLES_REGION_ID: "C", THREE_RECTANGLE_REGION_ID: None, "mapping": 1.0},
+            {THREE_TRIANGLES_REGION_ID: "B", THREE_RECTANGLE_REGION_ID: None, "mapping": 1.0},
+        ],
         schema=pl.Schema(
             {THREE_TRIANGLES_REGION_ID: pl.String, THREE_RECTANGLE_REGION_ID: pl.String, "mapping": pl.Float64}
         ),
