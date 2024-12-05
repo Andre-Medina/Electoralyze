@@ -1,10 +1,11 @@
 import polars as pl
 import pytest
 from electoralyze.common.testing.region_fixture import (
-    REDISTRIBUTE_MAPPING_A_TO_B,
-    REDISTRIBUTE_MAPPING_A_TO_C,
-    REDISTRIBUTE_MAPPING_B_TO_C,
+    FOUR_SQUARE_REGION_ID,
+    THREE_RECTANGLE_REGION_ID,
+    THREE_TRIANGLES_REGION_ID,
     RegionMocked,
+    get_true_redistribution,
 )
 from electoralyze.region.redistribute.mapping import (
     MAPPING_OPTIONS,
@@ -18,10 +19,30 @@ from polars import testing  # noqa: F401
 @pytest.mark.parametrize(
     "_name, region_id_from, region_id_to, expected",
     [
-        ("a to b, ", "region_a", "region_b", REDISTRIBUTE_MAPPING_A_TO_B),
-        ("b to a, ", "region_b", "region_a", REDISTRIBUTE_MAPPING_A_TO_B),
-        ("a to c, ", "region_a", "region_c", REDISTRIBUTE_MAPPING_A_TO_C),
-        ("b to c, ", "region_b", "region_c", REDISTRIBUTE_MAPPING_B_TO_C),
+        (
+            "a to b, ",
+            FOUR_SQUARE_REGION_ID,
+            THREE_TRIANGLES_REGION_ID,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
+        ),
+        (
+            "b to a, ",
+            THREE_TRIANGLES_REGION_ID,
+            FOUR_SQUARE_REGION_ID,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
+        ),
+        (
+            "a to c, ",
+            FOUR_SQUARE_REGION_ID,
+            THREE_RECTANGLE_REGION_ID,
+            get_true_redistribution(THREE_RECTANGLE_REGION_ID, FOUR_SQUARE_REGION_ID),
+        ),
+        (
+            "b to c, ",
+            THREE_TRIANGLES_REGION_ID,
+            THREE_RECTANGLE_REGION_ID,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
+        ),
     ],
 )
 def test_create_intersection_area_mapping(
@@ -43,11 +64,19 @@ def test_create_intersection_area_mapping(
 @pytest.mark.parametrize(
     "_name, region_id_from, region_id_to, mapping_method, redistribute_with_full, expected, error",
     [
-        ("a to b, ", "region_a", "region_b", "intersection_area", True, REDISTRIBUTE_MAPPING_A_TO_B, None),
+        (
+            "a to b, ",
+            FOUR_SQUARE_REGION_ID,
+            THREE_TRIANGLES_REGION_ID,
+            "intersection_area",
+            True,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
+            None,
+        ),
         (
             "b to a: removes file, ",
-            "region_b",
-            "region_a",
+            THREE_TRIANGLES_REGION_ID,
+            FOUR_SQUARE_REGION_ID,
             "intersection_area",
             None,
             None,
@@ -55,8 +84,8 @@ def test_create_intersection_area_mapping(
         ),
         (
             "a to c: no file at all, ",
-            "region_a",
-            "region_c",
+            FOUR_SQUARE_REGION_ID,
+            THREE_RECTANGLE_REGION_ID,
             "intersection_area",
             None,
             None,
@@ -64,17 +93,17 @@ def test_create_intersection_area_mapping(
         ),
         (
             "b to c: using simplified, , ",
-            "region_b",
-            "region_c",
+            THREE_TRIANGLES_REGION_ID,
+            THREE_RECTANGLE_REGION_ID,
             "intersection_area",
             False,
-            REDISTRIBUTE_MAPPING_B_TO_C,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
             None,
         ),
         (
             "b to c: trying to use centroid, , ",
-            "region_b",
-            "region_c",
+            THREE_TRIANGLES_REGION_ID,
+            THREE_RECTANGLE_REGION_ID,
             "centroid_distance",
             False,
             None,
@@ -121,28 +150,28 @@ def test_get_region_mapping_base(
     [
         (
             "a to b, typical, ",
-            "region_a",
-            "region_b",
+            FOUR_SQUARE_REGION_ID,
+            THREE_TRIANGLES_REGION_ID,
             "intersection_area",
             True,
             True,
-            REDISTRIBUTE_MAPPING_A_TO_B,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
             None,
         ),
         (
             "b to a: file still there, ",
-            "region_b",
-            "region_a",
+            THREE_TRIANGLES_REGION_ID,
+            FOUR_SQUARE_REGION_ID,
             "intersection_area",
             None,
             False,
-            REDISTRIBUTE_MAPPING_A_TO_B,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
             None,
         ),
         (
             "a to c: no file after not saving, ",
-            "region_a",
-            "region_c",
+            FOUR_SQUARE_REGION_ID,
+            THREE_RECTANGLE_REGION_ID,
             "intersection_area",
             None,
             False,
@@ -151,12 +180,12 @@ def test_get_region_mapping_base(
         ),
         (
             "b to c: using simplified, ",
-            "region_b",
-            "region_c",
+            THREE_TRIANGLES_REGION_ID,
+            THREE_RECTANGLE_REGION_ID,
             "intersection_area",
             False,
             True,
-            REDISTRIBUTE_MAPPING_B_TO_C,
+            get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
             None,
         ),
     ],

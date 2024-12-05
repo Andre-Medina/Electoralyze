@@ -12,10 +12,14 @@ from electoralyze.region.region_abc import RegionABC
 
 QUARTER = 1 / 4
 
-REGIONS = Literal["region_a", "region_b", "region_c"]
-REGION_IDS = ["region_a", "region_b", "region_c"]
+FOUR_SQUARE_REGION_ID = "region_a"
+THREE_TRIANGLES_REGION_ID = "region_b"
+THREE_RECTANGLE_REGION_ID = "region_c"
+
+REGIONS = Literal[FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID]
+REGION_IDS = [FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID]
 REGION_JSONS = {
-    REGION_IDS[0]: {
+    FOUR_SQUARE_REGION_ID: {
         # Four quadrants
         # ┌─────────1─────────┐
         # │         │         │
@@ -26,8 +30,8 @@ REGION_JSONS = {
         # │    O    │    P    │
         # │         │         │
         # └────────-1─────────┘
-        REGION_IDS[0]: ["M", "N", "O", "P"],
-        f"{REGION_IDS[0]}_name": ["Mew", "New", "Omega", "Phi"],
+        FOUR_SQUARE_REGION_ID: ["M", "N", "O", "P"],
+        f"{FOUR_SQUARE_REGION_ID}_name": ["Mew", "New", "Omega", "Phi"],
         "extra": ["1", "2", "3", "4"],
         "geometry": [
             "POLYGON ((0 0, 0 1, -1 1, -1 0, 0 0))",
@@ -36,7 +40,7 @@ REGION_JSONS = {
             "POLYGON ((0 0, 0 -1, 1 -1, 1 0, 0 0))",
         ],
     },
-    REGION_IDS[1]: {
+    THREE_TRIANGLES_REGION_ID: {
         # Three Triangles
         # \─────────────/1\─────────────/
         #  \     B     / A \     C     /
@@ -45,8 +49,8 @@ REGION_JSONS = {
         #     \     /         \     /
         #      \   /           \   /
         #       \ /─────-1──────\ /
-        REGION_IDS[1]: ["A", "B", "C"],
-        f"{REGION_IDS[1]}_name": ["Alpha", "Bravo", "Charlie"],
+        THREE_TRIANGLES_REGION_ID: ["A", "B", "C"],
+        f"{THREE_TRIANGLES_REGION_ID}_name": ["Alpha", "Bravo", "Charlie"],
         "extra": ["1", "2", "3"],
         "geometry": [
             "POLYGON ((-1 -1, 0 1, 1 -1, -1 -1))",
@@ -54,7 +58,7 @@ REGION_JSONS = {
             "POLYGON ((1 -1, 0 1, 2 1, 1 -1))",
         ],
     },
-    REGION_IDS[2]: {
+    THREE_RECTANGLE_REGION_ID: {
         # Three horizontal rectangles
         # ┌─────────1─────────┐
         # │    Z              │
@@ -65,8 +69,8 @@ REGION_JSONS = {
         # ├───────────────────┤
         # │    X              │
         # └────────-1─────────┘
-        REGION_IDS[2]: ["X", "Y", "Z"],
-        f"{REGION_IDS[2]}_name": ["xi", "upsilon", "zeta"],
+        THREE_RECTANGLE_REGION_ID: ["X", "Y", "Z"],
+        f"{THREE_RECTANGLE_REGION_ID}_name": ["xi", "upsilon", "zeta"],
         "extra": ["5", "5", "5"],
         "geometry": [
             f"POLYGON ((-1 -1, 1 -1, 1 -{QUARTER}, -1 -{QUARTER}, -1 -1))",
@@ -76,32 +80,45 @@ REGION_JSONS = {
     },
 }
 
+REDISTRIBUTE_MAPPINGS = {
+    tuple({FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID}): pl.DataFrame(
+        {
+            FOUR_SQUARE_REGION_ID: ["M", "M", "N", "N", "O", "O", "P", "P", None, None],
+            THREE_TRIANGLES_REGION_ID: ["A", "B", "A", "C", "A", "B", "A", "C", "C", "B"],
+            "mapping": [0.25, 0.75, 0.25, 0.75, 0.75, 0.25, 0.75, 0.25, 1.0, 1.0],
+        },
+        schema=pl.Schema(
+            {FOUR_SQUARE_REGION_ID: pl.String, THREE_TRIANGLES_REGION_ID: pl.String, "mapping": pl.Float64}
+        ),
+    ),
+    tuple({FOUR_SQUARE_REGION_ID, THREE_RECTANGLE_REGION_ID}): pl.DataFrame(
+        {
+            FOUR_SQUARE_REGION_ID: ["M", "M", "N", "N", "O", "O", "P", "P"],
+            THREE_RECTANGLE_REGION_ID: ["Y", "Z", "Y", "Z", "X", "Y", "X", "Y"],
+            "mapping": [QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, QUARTER],
+        },
+        schema=pl.Schema(
+            {FOUR_SQUARE_REGION_ID: pl.String, THREE_RECTANGLE_REGION_ID: pl.String, "mapping": pl.Float64}
+        ),
+    ),
+    tuple({THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID}): pl.DataFrame(
+        {
+            THREE_TRIANGLES_REGION_ID: ["A", "A", "A", "B", "B", "B", "C", "C", "C", "C", "B"],
+            THREE_RECTANGLE_REGION_ID: ["X", "Y", "Z", "X", "Y", "Z", "X", "Y", "Z", None, None],
+            "mapping": [1.21875, 0.5, 0.28125, 0.140625, 0.25, 0.609375, 0.140625, 0.25, 0.609375, 1.0, 1.0],
+        },
+        schema=pl.Schema(
+            {THREE_TRIANGLES_REGION_ID: pl.String, THREE_RECTANGLE_REGION_ID: pl.String, "mapping": pl.Float64}
+        ),
+    ),
+}
 
-REDISTRIBUTE_MAPPING_A_TO_B = pl.DataFrame(
-    {
-        REGION_IDS[0]: ["M", "M", "N", "N", "O", "O", "P", "P", None, None],
-        REGION_IDS[1]: ["A", "B", "A", "C", "A", "B", "A", "C", "C", "B"],
-        "mapping": [0.25, 0.75, 0.25, 0.75, 0.75, 0.25, 0.75, 0.25, 1.0, 1.0],
-    },
-    schema=pl.Schema({REGION_IDS[0]: pl.String, REGION_IDS[1]: pl.String, "mapping": pl.Float64}),
-)
-REDISTRIBUTE_MAPPING_A_TO_C = pl.DataFrame(
-    {
-        REGION_IDS[0]: ["M", "M", "N", "N", "O", "O", "P", "P"],
-        REGION_IDS[2]: ["Y", "Z", "Y", "Z", "X", "Y", "X", "Y"],
-        "mapping": [QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, 1 - QUARTER, QUARTER, 1 - QUARTER, QUARTER],
-    },
-    schema=pl.Schema({REGION_IDS[0]: pl.String, REGION_IDS[2]: pl.String, "mapping": pl.Float64}),
-)
 
-REDISTRIBUTE_MAPPING_B_TO_C = pl.DataFrame(
-    {
-        REGION_IDS[1]: ["A", "A", "A", "B", "B", "B", "C", "C", "C", "C", "B"],
-        REGION_IDS[2]: ["X", "Y", "Z", "X", "Y", "Z", "X", "Y", "Z", None, None],
-        "mapping": [1.21875, 0.5, 0.28125, 0.140625, 0.25, 0.609375, 0.140625, 0.25, 0.609375, 1.0, 1.0],
-    },
-    schema=pl.Schema({REGION_IDS[1]: pl.String, REGION_IDS[2]: pl.String, "mapping": pl.Float64}),
-)
+def get_true_redistribution(region_from: REGIONS, region_to: REGIONS) -> pl.DataFrame:
+    """Get true region given two ids."""
+    key_ = tuple({region_to, region_from})
+    region_mapping = REDISTRIBUTE_MAPPINGS[key_]
+    return region_mapping
 
 
 class RegionMocked:
