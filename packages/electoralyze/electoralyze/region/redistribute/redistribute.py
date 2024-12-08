@@ -2,6 +2,7 @@ from logging import warning
 from typing import Literal
 
 import polars as pl
+from polars.exceptions import ColumnNotFoundError
 
 from ..region_abc import RegionABC
 from .mapping import get_region_mapping_base
@@ -133,20 +134,25 @@ def _get_region_mapping(
     ------
     ValueError, _description_
     """
-    mapping_base: pl.DataFrame
+    mapping_base_all: pl.DataFrame
 
     if isinstance(mapping_method, pl.DataFrame):
-        mapping_base = mapping_method
+        mapping_base_all = mapping_method
     else:
-        mapping_base = get_region_mapping_base(
+        mapping_base_all = get_region_mapping_base(
             region_from=region_from,
             region_to=region_to,
             mapping_method=mapping_method,
             redistribute_with_full=redistribute_with_full,
         )
 
-    if set(mapping_base.columns) != {region_from.id, region_to.id, "mapping"}:
-        raise ValueError(f"Mapping should have columns `{region_from.id}`, `{region_to.id}`, and `{"mapping"}`.")
+    try:
+        mapping_base = mapping_base_all.select(region_from.id, region_to.id, "mapping")
+    except ColumnNotFoundError:
+        raise ColumnNotFoundError(
+            f"Mapping should have at least columns `{region_from.id}`, `{region_to.id}`, and "
+            f"`{"mapping"}`, It has {mapping_base_all.columns}"
+        ) from None
 
     if mapping_weights is None:
         region_mapping = _distribute(mapping_base, region_id=region_from.id, mapping_column="mapping")

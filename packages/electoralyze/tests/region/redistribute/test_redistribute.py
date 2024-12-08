@@ -9,6 +9,7 @@ from electoralyze.common.testing.region_fixture import (
 )
 from electoralyze.region.redistribute.redistribute import redistribute
 from polars import testing  # noqa: F401
+from polars.exceptions import ColumnNotFoundError
 
 
 @pytest.mark.parametrize(
@@ -31,7 +32,7 @@ from polars import testing  # noqa: F401
                 redistribute_with_full=True,
             ),
             dict(
-                to=pl.DataFrame(
+                data_by_to=pl.DataFrame(
                     [
                         {FOUR_SQUARE_REGION_ID: "N", "data": 25.0},
                         {FOUR_SQUARE_REGION_ID: "M", "data": 25.0},
@@ -39,7 +40,7 @@ from polars import testing  # noqa: F401
                         {FOUR_SQUARE_REGION_ID: "P", "data": 25.0},
                     ]
                 ),
-                via=pl.DataFrame(
+                data_by_via=pl.DataFrame(
                     [
                         {LEFT_RIGHT_REGION_ID: "L", "data": 50.0},
                         {LEFT_RIGHT_REGION_ID: "R", "data": 50.0},
@@ -64,14 +65,14 @@ from polars import testing  # noqa: F401
                 redistribute_with_full=True,
             ),
             dict(
-                to=pl.DataFrame(
+                data_by_to=pl.DataFrame(
                     [
                         {THREE_TRIANGLES_REGION_ID: "A", "data": 50.0},
                         {THREE_TRIANGLES_REGION_ID: "B", "data": 25.0},
                         {THREE_TRIANGLES_REGION_ID: "C", "data": 25.0},
                     ]
                 ),
-                via=pl.DataFrame(
+                data_by_via=pl.DataFrame(
                     [
                         {LEFT_RIGHT_REGION_ID: "L", "data": 37.5},
                         {LEFT_RIGHT_REGION_ID: "R", "data": 37.5},
@@ -98,7 +99,7 @@ from polars import testing  # noqa: F401
                 redistribute_with_full=True,
             ),
             dict(
-                via=pl.DataFrame(
+                data_by_via=pl.DataFrame(
                     [
                         {FOUR_SQUARE_REGION_ID: "N", "data": 18.0},
                         {FOUR_SQUARE_REGION_ID: "M", "data": 12.0},
@@ -107,7 +108,7 @@ from polars import testing  # noqa: F401
                         {FOUR_SQUARE_REGION_ID: None, "data": 24.0},
                     ]
                 ),
-                to=pl.DataFrame(
+                data_by_to=pl.DataFrame(
                     [
                         {THREE_TRIANGLES_REGION_ID: "A", "data": 48.0},
                         {THREE_TRIANGLES_REGION_ID: "B", "data": 16.0},
@@ -122,48 +123,124 @@ def test_redistribute_via(
     region: RegionMocked, _name: str, region_ids: dict, redistribute_kwargs: dict, redistributed_expected: dict
 ):
     """Test redistribute function works as intended, testing both `from -> to` as well as `from -> via -> to`."""
-    if redistributed_expected.get("errors") is None:
-        redistributed_to = redistribute(
-            region_from=region.from_id(region_ids["region_id_from"]),
-            region_to=region.from_id(region_ids["region_id_via"]),
-            **redistribute_kwargs,
-        )
+    redistributed_to = redistribute(
+        region_from=region.from_id(region_ids["region_id_from"]),
+        region_to=region.from_id(region_ids["region_id_via"]),
+        **redistribute_kwargs,
+    )
 
-        pl.testing.assert_frame_equal(
-            redistributed_to,
-            redistributed_expected["to"],
-            check_row_order=False,
-            check_column_order=False,
-        )
+    pl.testing.assert_frame_equal(
+        redistributed_to,
+        redistributed_expected["data_by_to"],
+        check_row_order=False,
+        check_column_order=False,
+    )
 
-        redistributed_via = redistribute(
-            region_from=region.from_id(region_ids["region_id_from"]),
-            region_via=region.from_id(region_ids["region_id_via"]),
-            region_to=region.from_id(region_ids["region_id_to"]),
-            **redistribute_kwargs,
-        )
+    redistributed_via = redistribute(
+        region_from=region.from_id(region_ids["region_id_from"]),
+        region_via=region.from_id(region_ids["region_id_via"]),
+        region_to=region.from_id(region_ids["region_id_to"]),
+        **redistribute_kwargs,
+    )
 
-        pl.testing.assert_frame_equal(
-            redistributed_via,
-            redistributed_expected["via"],
-            check_row_order=False,
-            check_column_order=False,
-        )
+    pl.testing.assert_frame_equal(
+        redistributed_via,
+        redistributed_expected["data_by_via"],
+        check_row_order=False,
+        check_column_order=False,
+    )
 
-    else:
-        with pytest.raises(redistributed_expected["errors"]):
-            redistributed_to = redistribute(
-                region_from=region.from_id(region_ids["region_id_from"]),
-                region_to=region.from_id(region_ids["region_id_via"]),
-                **redistribute_kwargs,
-            )
 
-            redistributed_via = redistribute(
-                region_from=region.from_id(region_ids["region_id_from"]),
-                region_via=region.from_id(region_ids["region_id_via"]),
-                region_to=region.from_id(region_ids["region_id_to"]),
-                **redistribute_kwargs,
-            )
+@pytest.mark.parametrize(
+    "_name, region_ids, redistribute_kwargs, redistributed_expected",
+    [
+        (
+            "Mapping as basic dataframe, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=FOUR_SQUARE_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", "data": 100},
+                    ]
+                ),
+                mapping=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "M", "mapping": 25.0},
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "N", "mapping": 25.0},
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "O", "mapping": 25.0},
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "P", "mapping": 25.0},
+                    ]
+                ),
+                redistribute_with_full=None,
+            ),
+            dict(
+                data_by_to=pl.DataFrame(
+                    [
+                        {FOUR_SQUARE_REGION_ID: "M", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "N", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "O", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "P", "data": 25.0},
+                    ]
+                ),
+            ),
+        ),
+        (
+            "Mapping as less basic dataframe, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=FOUR_SQUARE_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", "data": 100},
+                    ]
+                ),
+                mapping=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "M", "mapping": 1.0},
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "N", "mapping": 2.0},
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "O", "mapping": 3.0},
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: "P", "mapping": 3.0},
+                        {ONE_SQUARE_REGION_ID: "main", FOUR_SQUARE_REGION_ID: None, "mapping": 1.0},
+                    ]
+                ),
+                redistribute_with_full=None,
+            ),
+            dict(
+                data_by_to=pl.DataFrame(
+                    [
+                        {FOUR_SQUARE_REGION_ID: "M", "data": 10.0},
+                        {FOUR_SQUARE_REGION_ID: "N", "data": 20.0},
+                        {FOUR_SQUARE_REGION_ID: "O", "data": 30.0},
+                        {FOUR_SQUARE_REGION_ID: "P", "data": 30.0},
+                        {FOUR_SQUARE_REGION_ID: None, "data": 10.0},
+                    ]
+                ),
+            ),
+        ),
+    ],
+)
+def test_redistribute_special_mapping(
+    region: RegionMocked, _name: str, region_ids: dict, redistribute_kwargs: dict, redistributed_expected: dict
+):
+    """Test redistribute function works as intended, testing both `from -> to` as well as `from -> via -> to`."""
+    redistributed_to = redistribute(
+        region_from=region.from_id(region_ids["region_id_from"]),
+        region_via=region.from_id(region_ids["region_id_via"]) if "region_id_via" in region_ids else None,
+        region_to=region.from_id(region_ids["region_id_to"]),
+        **redistribute_kwargs,
+    )
+
+    pl.testing.assert_frame_equal(
+        redistributed_to,
+        redistributed_expected["data_by_to"],
+        check_row_order=False,
+        check_column_order=False,
+    )
 
 
 @pytest.mark.parametrize(
@@ -256,9 +333,63 @@ def test_redistribute_via(
                 errors=ValueError,
             ),
         ),
+        (
+            "Custom mapping is missing a region column, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "main", "data": 100.0}]),
+                mapping=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", "mapping": 1.0},
+                    ]
+                ),
+            ),
+            dict(
+                errors=ColumnNotFoundError,
+            ),
+        ),
+        (
+            "Custom mapping is missing a mapping column, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "main", "data": 100.0}]),
+                mapping=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", LEFT_RIGHT_REGION_ID: "M"},
+                    ]
+                ),
+            ),
+            dict(
+                errors=ColumnNotFoundError,
+            ),
+        ),
+        (
+            "Custom mapping is fine, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "main", "data": 100.0}]),
+                mapping=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", LEFT_RIGHT_REGION_ID: "M", "mapping": 1.0},
+                    ]
+                ),
+            ),
+            dict(
+                data_by_to=pl.DataFrame([{LEFT_RIGHT_REGION_ID: "M", "data": 100.0}]),
+            ),
+        ),
     ],
 )
-def test_redistribute_edge_cases(
+def test_redistribute_error_conditions(
     region: RegionMocked, _name: str, region_ids: dict, redistribute_kwargs: dict, redistributed_expected: dict
 ):
     """Test redistribute function works as intended, testing both `from -> to` as well as `from -> via -> to`."""
