@@ -9,6 +9,7 @@ ignore = [
     "D200", # One-line docstring should fit on one line
     "D401", # Non imperitive mood
     "PLR0913", # Too many arguments
+    "C408", # Using `dict(...)` instead of `{...}`
 ]
 unfixable = ["F401"]
 

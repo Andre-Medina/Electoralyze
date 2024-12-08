@@ -11,7 +11,7 @@ def redistribute(
     region_from: RegionABC,
     region_to: RegionABC,
     index_columns: list[str] | None = None,
-    region_through: RegionABC | None = None,
+    region_via: RegionABC | None = None,
     weights: WEIGHT_OPTIONS | None = None,
     mapping: MAPPING_OPTIONS | pl.DataFrame = "intersection_area",
     aggregation: AGGREGATION_OPTIONS = "sum",
@@ -25,7 +25,7 @@ def redistribute(
     index_columns: list[str] | None, Index columns in the input dataframe to keep.
     region_from: RegionABC, From region to redistribute, should be a column in the dataframe.
     region_to: RegionABC, To region to redistribute, Will output data with this column.
-    region_through: RegionABC | None, If given, will convert region_from -> region_through -> region_to. Useful to
+    region_via: RegionABC | None, If given, will convert region_from -> region_via -> region_to. Useful to
     weights: Literal["population"] | None, weighting to use to redistribute data.
         - None: redistribute by pure `mapping` as the weight.
         - "population", Will use population as a weight.
@@ -58,19 +58,19 @@ def redistribute(
     if not data_columns:
         raise ValueError("No data columns found in data_by_from.")
 
-    if region_through:
+    if region_via:
         data_by_through = redistribute(
             data_by_from,
             index_columns=index_columns,
             region_from=region_from,
-            region_to=region_through,
+            region_to=region_via,
             weights=weights,
             mapping=mapping,
             aggregation=aggregation,
             redistribute_with_full=redistribute_with_full,
         )
         data_by_from = data_by_through
-        region_from = region_through
+        region_from = region_via
 
     region_mapping = _get_region_mapping(
         region_from=region_from,
