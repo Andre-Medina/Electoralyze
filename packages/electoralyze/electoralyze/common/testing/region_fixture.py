@@ -12,20 +12,71 @@ from electoralyze.region.region_abc import RegionABC
 
 QUARTER = 1 / 4
 
-FOUR_SQUARE_REGION_ID = "region_a"
-THREE_TRIANGLES_REGION_ID = "region_b"
-THREE_RECTANGLE_REGION_ID = "region_c"
+FOUR_SQUARE_REGION_ID = "quadrant"
+THREE_TRIANGLES_REGION_ID = "triangle"
+THREE_RECTANGLE_REGION_ID = "rectangle"
+ONE_SQUARE_REGION_ID = "square"
+LEFT_RIGHT_REGION_ID = "l_and_r"
 
-REGIONS = Literal[FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID]
-REGION_IDS = [FOUR_SQUARE_REGION_ID, THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID]
+REGIONS = Literal[
+    FOUR_SQUARE_REGION_ID,
+    THREE_TRIANGLES_REGION_ID,
+    THREE_RECTANGLE_REGION_ID,
+    ONE_SQUARE_REGION_ID,
+    LEFT_RIGHT_REGION_ID,
+]
+REGION_IDS = [
+    FOUR_SQUARE_REGION_ID,
+    THREE_TRIANGLES_REGION_ID,
+    THREE_RECTANGLE_REGION_ID,
+    ONE_SQUARE_REGION_ID,
+    LEFT_RIGHT_REGION_ID,
+]
 REGION_JSONS = {
+    ONE_SQUARE_REGION_ID: {
+        #  One square region.
+        #  ┌─────────4─────────┐
+        #  │                   │
+        #  │    O              │
+        #  │                   │
+        # -4         0         4
+        #  │                   │
+        #  │                   │
+        #  │                   │
+        #  └────────-4─────────┘
+        ONE_SQUARE_REGION_ID: ["main"],
+        f"{ONE_SQUARE_REGION_ID}_name": ["main"],
+        "extra": ["1000"],
+        "geometry": [
+            "POLYGON ((-4 -4, 4 -4, 4 4, -4 4, -4 -4))",
+        ],
+    },
+    LEFT_RIGHT_REGION_ID: {
+        #  Left and right sections.
+        #  ┌─────────4─────────┐
+        #  │         │         │
+        #  │    L    │    R    │
+        #  │         │         │
+        # -4         0         4
+        #  │         │         │
+        #  │         │         │
+        #  │         │         │
+        #  └────────-4─────────┘
+        LEFT_RIGHT_REGION_ID: ["L", "R"],
+        f"{LEFT_RIGHT_REGION_ID}_name": ["Left", "Right"],
+        "extra": ["-100", "100"],
+        "geometry": [
+            "POLYGON ((-4 -4, 0 -4, 0 4, -4 4, -4 -4))",
+            "POLYGON ((0 -4, 4 -4, 4 4, 0 4, 0 -4))",
+        ],
+    },
     FOUR_SQUARE_REGION_ID: {
-        #  Four quadrants
+        #  Four quadrant
         #  ┌─────────4─────────┐
         #  │         │         │
         #  │    M    │    N    │
         #  │         │         │
-        # -4─────────O─────────4
+        # -4─────────0─────────4
         #  │         │         │
         #  │    O    │    P    │
         #  │         │         │
@@ -45,7 +96,7 @@ REGION_JSONS = {
         #  \─────────────/4\─────────────/
         #   \     B     / A \     C     /
         #    \         /     \         /
-        # -8  \  -4   /   O   \   4   /  8
+        # -8  \  -4   /   0   \   4   /  8
         #      \     /         \     /
         #       \   /           \   /
         #        \ /─────-4──────\ /
@@ -64,7 +115,7 @@ REGION_JSONS = {
         #  │    Z              │
         #  ├─────────2─────────┤
         #  │                   │
-        # -4    Y    O         4
+        # -4    Y    0         4
         #  │                   │
         #  ├─────────2─────────┤
         #  │    X              │
@@ -144,9 +195,11 @@ def get_true_redistribution(region_from: REGIONS, region_to: REGIONS) -> pl.Data
 class RegionMocked:
     """Class to type hint the mocked regions."""
 
-    region_a: RegionABC
-    region_b: RegionABC
-    region_c: RegionABC
+    quadrant: RegionABC
+    triangle: RegionABC
+    rectangle: RegionABC
+    square: RegionABC
+    l_and_r: RegionABC
 
     def __init__(self, **regions: dict[REGIONS, RegionABC]):
         for region_id, region_ in regions.items():
@@ -159,7 +212,8 @@ class RegionMocked:
 
     def remove_processed_files(self) -> None:
         """Remove processed files."""
-        for region_ in (self.region_a, self.region_b, self.region_c):
+        for region_id in REGION_IDS:
+            region_ = self.from_id(region_id)
             region_.remove_processed_files()
             region_.cache_clear()
 
@@ -213,6 +267,9 @@ def create_fake_regions(temp_dir: str):
         @classmethod
         def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
             """Structure data."""
+            if cls.name[0:10] == cls.id:
+                raise ValueError(f"First 10 chars of Name = ID for '{cls.id}', this will cause issues")
+
             geometry_with_metadata = geometry_raw.select(
                 pl.col(cls.id),
                 pl.struct(
@@ -239,7 +296,8 @@ def create_fake_regions(temp_dir: str):
                 @classproperty
                 def raw_geometry_file(self) -> str:
                     """Raw file."""
-                    return region_shape_file[region_id_]
+                    name_ = region_shape_file[region_id_]
+                    return name_
 
             return NewRegion
 

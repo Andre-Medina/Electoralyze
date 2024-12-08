@@ -6,7 +6,13 @@ import polars as pl
 import pytest
 from electoralyze import region
 from electoralyze.common.geometry import to_geopandas
-from electoralyze.common.testing.region_fixture import REGION_IDS, RegionMocked, read_true_geometry, read_true_metadata
+from electoralyze.common.testing.region_fixture import (
+    FOUR_SQUARE_REGION_ID,
+    REGION_IDS,
+    RegionMocked,
+    read_true_geometry,
+    read_true_metadata,
+)
 from geopandas import testing as gpd_testing  # noqa: F401
 from polars import testing as pl_testing  # noqa: F401
 
@@ -54,10 +60,10 @@ def test_region_fixture_import(region: RegionMocked):
     """Test region fixture imports."""
     # Test one manually
     gpd.testing.assert_geodataframe_equal(
-        region.region_a.get_raw_geometry().pipe(to_geopandas),
-        read_true_geometry("region_a", raw=True).pipe(to_geopandas),
+        region.quadrant.get_raw_geometry().pipe(to_geopandas),
+        read_true_geometry(FOUR_SQUARE_REGION_ID, raw=True).pipe(to_geopandas),
     )
-    pl.testing.assert_frame_equal(region.region_a.get_raw_metadata(), read_true_metadata("region_a"))
+    pl.testing.assert_frame_equal(region.quadrant.get_raw_metadata(), read_true_metadata(FOUR_SQUARE_REGION_ID))
 
     # Test the rest through a loop
     for region_id in REGION_IDS:
@@ -74,14 +80,14 @@ def test_region_fixture_process(region: RegionMocked):
 
     # Test one manually
     with pytest.raises(FileNotFoundError):
-        region.region_a.geometry  # noqa:B018
+        region.quadrant.geometry  # noqa:B018
     with pytest.raises(FileNotFoundError):
-        region.region_a.metadata  # noqa:B018
-    region.region_a.process_raw()
+        region.quadrant.metadata  # noqa:B018
+    region.quadrant.process_raw()
     gpd.testing.assert_geodataframe_equal(
-        region.region_a.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
+        region.quadrant.geometry.pipe(to_geopandas), read_true_geometry(FOUR_SQUARE_REGION_ID).pipe(to_geopandas)
     )
-    pl.testing.assert_frame_equal(region.region_a.metadata, read_true_metadata("region_a"))
+    pl.testing.assert_frame_equal(region.quadrant.metadata, read_true_metadata(FOUR_SQUARE_REGION_ID))
 
     # Test the rest through a loop
     for region_id in REGION_IDS:
@@ -103,9 +109,9 @@ def test_region_fixture_still_processed(region: RegionMocked):
     """Test region fixture keeps saved data."""
     # Test one manually
     gpd.testing.assert_geodataframe_equal(
-        region.region_a.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
+        region.quadrant.geometry.pipe(to_geopandas), read_true_geometry(FOUR_SQUARE_REGION_ID).pipe(to_geopandas)
     )
-    pl.testing.assert_frame_equal(region.region_a.metadata, read_true_metadata("region_a"))
+    pl.testing.assert_frame_equal(region.quadrant.metadata, read_true_metadata(FOUR_SQUARE_REGION_ID))
 
     # Test the rest through a loop
     for region_id in REGION_IDS:
