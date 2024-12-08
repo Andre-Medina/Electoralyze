@@ -206,7 +206,11 @@ def _get_region_mapping_file(
     mapping: MAPPING_OPTIONS,
 ) -> str:
     """Returns the path to the mapping file for the given region."""
-    regions = list({region_from.id, region_to.id})
+    if region_from.id == region_to.id:
+        regions = [region_from.id] * 2
+    else:
+        regions = list({region_from.id, region_to.id})
+
     mapping_file = region_from.redistribute_file.format(
         mapping=mapping,
         region_a=regions[0],

@@ -3,6 +3,7 @@ import pytest
 from electoralyze.common.testing.region_fixture import (
     FOUR_SQUARE_REGION_ID,
     LEFT_RIGHT_REGION_ID,
+    ONE_SQUARE_REGION_ID,
     THREE_TRIANGLES_REGION_ID,
     RegionMocked,
 )
@@ -14,7 +15,73 @@ from polars import testing  # noqa: F401
     "_name, region_ids, redistribute_kwargs, redistributed_expected",
     [
         (
-            "from L R -> via Triangle -> to quadrants, ",
+            "one square -> quadrants -> L and R, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_via=FOUR_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", "data": 100},
+                    ]
+                ),
+                mapping="intersection_area",
+                redistribute_with_full=True,
+            ),
+            dict(
+                to=pl.DataFrame(
+                    [
+                        {FOUR_SQUARE_REGION_ID: "N", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "M", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "O", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "P", "data": 25.0},
+                    ]
+                ),
+                via=pl.DataFrame(
+                    [
+                        {LEFT_RIGHT_REGION_ID: "L", "data": 50.0},
+                        {LEFT_RIGHT_REGION_ID: "R", "data": 50.0},
+                    ]
+                ),
+            ),
+        ),
+        (
+            "one square -> triangles -> L and R, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_via=THREE_TRIANGLES_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", "data": 100},
+                    ]
+                ),
+                mapping="intersection_area",
+                redistribute_with_full=True,
+            ),
+            dict(
+                to=pl.DataFrame(
+                    [
+                        {THREE_TRIANGLES_REGION_ID: "A", "data": 50.0},
+                        {THREE_TRIANGLES_REGION_ID: "B", "data": 25.0},
+                        {THREE_TRIANGLES_REGION_ID: "C", "data": 25.0},
+                    ]
+                ),
+                via=pl.DataFrame(
+                    [
+                        {LEFT_RIGHT_REGION_ID: "L", "data": 37.5},
+                        {LEFT_RIGHT_REGION_ID: "R", "data": 37.5},
+                        {LEFT_RIGHT_REGION_ID: None, "data": 25.0},
+                    ]
+                ),
+            ),
+        ),
+        (
+            "L R -> Triangle -> quadrants, ",
             dict(
                 region_id_from=LEFT_RIGHT_REGION_ID,
                 region_id_to=FOUR_SQUARE_REGION_ID,
@@ -28,7 +95,7 @@ from polars import testing  # noqa: F401
                     ]
                 ),
                 mapping="intersection_area",
-                redistribute_with_full=False,
+                redistribute_with_full=True,
             ),
             dict(
                 via=pl.DataFrame(
@@ -55,29 +122,166 @@ def test_redistribute_via(
     region: RegionMocked, _name: str, region_ids: dict, redistribute_kwargs: dict, redistributed_expected: dict
 ):
     """Test redistribute function works as intended, testing both `from -> to` as well as `from -> via -> to`."""
-    redistributed_to = redistribute(
-        region_from=region.from_id(region_ids["region_id_from"]),
-        region_to=region.from_id(region_ids["region_id_via"]),
-        **redistribute_kwargs,
-    )
+    if redistributed_expected.get("errors") is None:
+        redistributed_to = redistribute(
+            region_from=region.from_id(region_ids["region_id_from"]),
+            region_to=region.from_id(region_ids["region_id_via"]),
+            **redistribute_kwargs,
+        )
 
-    pl.testing.assert_frame_equal(
-        redistributed_to,
-        redistributed_expected["to"],
-        check_row_order=False,
-        check_column_order=False,
-    )
+        pl.testing.assert_frame_equal(
+            redistributed_to,
+            redistributed_expected["to"],
+            check_row_order=False,
+            check_column_order=False,
+        )
 
-    redistributed_via = redistribute(
-        region_from=region.from_id(region_ids["region_id_from"]),
-        region_via=region.from_id(region_ids["region_id_via"]),
-        region_to=region.from_id(region_ids["region_id_to"]),
-        **redistribute_kwargs,
-    )
+        redistributed_via = redistribute(
+            region_from=region.from_id(region_ids["region_id_from"]),
+            region_via=region.from_id(region_ids["region_id_via"]),
+            region_to=region.from_id(region_ids["region_id_to"]),
+            **redistribute_kwargs,
+        )
 
-    pl.testing.assert_frame_equal(
-        redistributed_via,
-        redistributed_expected["via"],
-        check_row_order=False,
-        check_column_order=False,
-    )
+        pl.testing.assert_frame_equal(
+            redistributed_via,
+            redistributed_expected["via"],
+            check_row_order=False,
+            check_column_order=False,
+        )
+
+    else:
+        with pytest.raises(redistributed_expected["errors"]):
+            redistributed_to = redistribute(
+                region_from=region.from_id(region_ids["region_id_from"]),
+                region_to=region.from_id(region_ids["region_id_via"]),
+                **redistribute_kwargs,
+            )
+
+            redistributed_via = redistribute(
+                region_from=region.from_id(region_ids["region_id_from"]),
+                region_via=region.from_id(region_ids["region_id_via"]),
+                region_to=region.from_id(region_ids["region_id_to"]),
+                **redistribute_kwargs,
+            )
+
+
+@pytest.mark.parametrize(
+    "_name, region_ids, redistribute_kwargs, redistributed_expected",
+    [
+        (
+            "data_by_from has wrong ids, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "O", "data": 100}]),
+                mapping="intersection_area",
+                redistribute_with_full=True,
+            ),
+            dict(
+                errors=ValueError,
+            ),
+        ),
+        (
+            "data_by_from has wrong ids: want warnings no errors, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "O", "data": 100.0}]),
+                mapping="intersection_area",
+                redistribute_with_full=True,
+                errors="warning",
+            ),
+            dict(
+                data_by_to=pl.DataFrame(pl.DataFrame(schema={LEFT_RIGHT_REGION_ID: pl.String, "data": pl.Float64})),
+            ),
+        ),
+        (
+            "Same from and to region ids raises error, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=ONE_SQUARE_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "O", "data": 100.0}]),
+            ),
+            dict(
+                errors=ValueError,
+            ),
+        ),
+        (
+            "`data_by_from` doesn't have region_if_from raises error,  ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{"nothing": "O", "data": 100.0}]),
+            ),
+            dict(
+                errors=ValueError,
+            ),
+        ),
+        (
+            "no exiting mapping raises error,  ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "O", "data": 100.0}]),
+                mapping="intersection_area",
+                redistribute_with_full=None,
+            ),
+            dict(
+                errors=FileNotFoundError,
+            ),
+        ),
+        (
+            "no data columns raises error, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "O"}]),
+                mapping="intersection_area",
+                redistribute_with_full=None,
+            ),
+            dict(
+                errors=ValueError,
+            ),
+        ),
+    ],
+)
+def test_redistribute_edge_cases(
+    region: RegionMocked, _name: str, region_ids: dict, redistribute_kwargs: dict, redistributed_expected: dict
+):
+    """Test redistribute function works as intended, testing both `from -> to` as well as `from -> via -> to`."""
+    if redistributed_expected.get("errors") is None:
+        redistributed_via = redistribute(
+            region_from=region.from_id(region_ids["region_id_from"]),
+            region_via=region.from_id(region_ids["region_id_via"]) if "region_id_via" in region_ids else None,
+            region_to=region.from_id(region_ids["region_id_to"]),
+            **redistribute_kwargs,
+        )
+
+        pl.testing.assert_frame_equal(
+            redistributed_via,
+            redistributed_expected["data_by_to"],
+            check_row_order=False,
+            check_column_order=False,
+        )
+
+    else:
+        with pytest.raises(redistributed_expected["errors"]):
+            redistribute(
+                region_from=region.from_id(region_ids["region_id_from"]),
+                region_via=region.from_id(region_ids["region_id_via"]) if "region_id_via" in region_ids else None,
+                region_to=region.from_id(region_ids["region_id_to"]),
+                **redistribute_kwargs,
+            )

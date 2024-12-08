@@ -1,3 +1,6 @@
+from logging import warning
+from typing import Literal
+
 import polars as pl
 
 from ..region_abc import RegionABC
@@ -16,6 +19,7 @@ def redistribute(
     mapping: MAPPING_OPTIONS | pl.DataFrame = "intersection_area",
     aggregation: AGGREGATION_OPTIONS = "sum",
     redistribute_with_full: bool | None = None,
+    errors: Literal["raise", "warning"] = "raise",
 ) -> pl.DataFrame:
     """Redistribute data from one region to another.
 
@@ -52,6 +56,9 @@ def redistribute(
 
     if region_from.id not in data_by_from.columns:
         raise ValueError(f"From region column `{region_from.id}` not found in data_by_from.")
+
+    if region_from.id == region_to.id:
+        raise ValueError(f"`from` and `to` region cannot be the same. Both were {region_from.id!r}")
 
     data_columns = list(set(data_by_from.columns) - set(index_columns) - {region_from.id, region_to.id})
 
@@ -93,6 +100,7 @@ def redistribute(
         index_columns=index_columns,
         data_columns=data_columns,
     )
+    _validate(data_by_from, data_by_to, data_columns, errors=errors)
 
     return data_by_to
 
@@ -227,3 +235,28 @@ def _aggregate(
         data_by_to = data_distributed.group_by(region_to.id).agg(*aggregation_expressions)
 
     return data_by_to
+
+
+def _validate(
+    data_by_from: pl.DataFrame,
+    data_by_to: pl.DataFrame,
+    data_columns: list[str],
+    errors: Literal["raise", "warning"],
+):
+    """Validate that data_by_from and data_by_to have the same amount of data."""
+    bad_data_transformations = []
+    for data_column in data_columns:
+        if (from_total := data_by_from[data_column].sum()) != (to_total := data_by_to[data_column].sum()):
+            bad_data_transformations.append(
+                f"Miss match in data for column: {data_column!r}. From: {from_total!r} -> To: {to_total!r}"
+            )
+
+    if bad_data_transformations:
+        error_message = "Found differences in input and output data while redistributing.\n" + "\n".join(
+            bad_data_transformations
+        )
+
+        if errors == "raise":
+            raise ValueError(error_message)
+        if errors == "warning":
+            warning(error_message)
