@@ -49,6 +49,40 @@ from polars.exceptions import ColumnNotFoundError
             ),
         ),
         (
+            "Split data, one square -> quadrants -> L and R, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_via=FOUR_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame(
+                    [
+                        {ONE_SQUARE_REGION_ID: "main", "data": 70.0},
+                        {ONE_SQUARE_REGION_ID: "main", "data": 30.0},
+                    ]
+                ),
+                mapping="intersection_area",
+                redistribute_with_full=True,
+            ),
+            dict(
+                data_by_to=pl.DataFrame(
+                    [
+                        {FOUR_SQUARE_REGION_ID: "N", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "M", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "O", "data": 25.0},
+                        {FOUR_SQUARE_REGION_ID: "P", "data": 25.0},
+                    ]
+                ),
+                data_by_via=pl.DataFrame(
+                    [
+                        {LEFT_RIGHT_REGION_ID: "L", "data": 50.0},
+                        {LEFT_RIGHT_REGION_ID: "R", "data": 50.0},
+                    ]
+                ),
+            ),
+        ),
+        (
             "one square -> triangles -> L and R, ",
             dict(
                 region_id_from=ONE_SQUARE_REGION_ID,
@@ -385,6 +419,36 @@ def test_redistribute_special_mapping(
             ),
             dict(
                 data_by_to=pl.DataFrame([{LEFT_RIGHT_REGION_ID: "M", "data": 100.0}]),
+            ),
+        ),
+        (
+            "Not implemented aggregation method, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "main", "data": 100.0}]),
+                redistribute_with_full=True,
+                aggregation="min",
+            ),
+            dict(
+                errors=NotImplementedError,
+            ),
+        ),
+        (
+            "Not implemented centroid distance, ",
+            dict(
+                region_id_from=ONE_SQUARE_REGION_ID,
+                region_id_to=LEFT_RIGHT_REGION_ID,
+            ),
+            dict(
+                data_by_from=pl.DataFrame([{ONE_SQUARE_REGION_ID: "main", "data": 100.0}]),
+                redistribute_with_full=True,
+                mapping="centroid_distance",
+            ),
+            dict(
+                errors=NotImplementedError,
             ),
         ),
     ],
