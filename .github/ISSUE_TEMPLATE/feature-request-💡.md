@@ -2,7 +2,7 @@
 name: "Feature request \U0001F4A1"
 about: Have a great idea? Tell us!
 title: ""
-labels: Feature \U0001F680, NEW, Feature, feature, Feature 🚀, Feature \U+1F680
+labels: T-Feature 🚀, I-NEW ⚠️
 assignees: ''
 
 ---
