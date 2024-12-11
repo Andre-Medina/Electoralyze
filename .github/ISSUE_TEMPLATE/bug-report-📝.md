@@ -2,7 +2,7 @@
 name: "Bug report \U0001F4DD"
 about: Found a bug? Report it!
 title: ""
-labels: Bug \U0001F99F, NEW, Bug, bug, Bug 🦟, Bug \U+1F99F
+labels: T-Bug 🦟, I-NEW ⚠️
 assignees: ''
 
 ---
