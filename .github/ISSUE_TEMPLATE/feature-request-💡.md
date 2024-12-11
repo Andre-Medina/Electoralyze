@@ -1,8 +1,8 @@
 ---
 name: "Feature request \U0001F4A1"
 about: Have a great idea? Tell us!
-title: "[Feature]: "
-labels: feature, new
+title: ""
+labels: Feature \U0001F680, NEW
 assignees: ''
 
 ---
