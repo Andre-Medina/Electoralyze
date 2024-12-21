@@ -8,6 +8,7 @@ import pyogrio
 from cachetools import LRUCache, TTLCache, cached
 
 from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE, ROOT_DIR
+from electoralyze.common.files import create_path, download_file
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas, to_geopolars
 
@@ -16,6 +17,7 @@ GEOMETRY_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/geometry.parquet")
 METADATA_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/metadata.parquet")
 
 FULL_GEOMETRY_TTL_S = 300
+BASE_DOWNLOAD_TIMEOUT = 60
 
 
 class RegionABC(ABC):
@@ -102,6 +104,9 @@ class RegionABC(ABC):
     - Integration tests in `tests/integration/test_region.py: test_region_process_raw`.
     - Testing some region basics in `tests/region/test_region_abc.py: test_true_region_id_and_name`.
     """
+
+    raw_geometry_url: str
+    timeout: int = BASE_DOWNLOAD_TIMEOUT
 
     @classproperty
     @abstractmethod
@@ -239,8 +244,12 @@ class RegionABC(ABC):
     #### PROCESSING #########
 
     @classmethod
-    def process_raw(cls):
+    def process_raw(cls, *, force_new: bool = False, download: bool = False):
         """Extract, transform and save the raw data to create data for `cls.geometry` and `cls.metadata`."""
+        if download:
+            print("Downloading raw...")
+            cls.download_data(force_new=force_new)
+
         print("Loading raw...")
         geometry_raw = cls.get_raw_geometry()
         metadata_raw = cls.get_raw_metadata()
@@ -254,13 +263,20 @@ class RegionABC(ABC):
 
         print("Saving...")
 
-        os.makedirs(cls.geometry_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
+        create_path(cls.geometry_file)
         geometry.to_parquet(cls.geometry_file)
 
-        os.makedirs(cls.metadata_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
+        create_path(cls.metadata_file)
         metadata.write_parquet(cls.metadata_file)
 
         print("Done!")
+
+    @classmethod
+    def download_data(cls, *, force_new: bool = False):
+        """Download the raw data from the source. Must be called before `process_raw`."""
+        if (not force_new) and (os.path.exists(cls.raw_geometry_file)):
+            return
+        download_file(cls.raw_geometry_url, cls.raw_geometry_file, timeout=cls.timeout)
 
     @classmethod
     def get_raw_geometry(cls) -> st.GeoDataFrame:

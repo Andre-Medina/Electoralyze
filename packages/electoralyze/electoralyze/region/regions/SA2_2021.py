@@ -1,14 +1,15 @@
-import os
-
 import polars as pl
 import polars_st as st
-from electoralyze.common.constants import ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.region.region_abc import RegionABC
+
+from .SA1_2021 import SA1_2021_RAW_FILE, SA1_2021_RAW_FILE_URL
 
 
 class SA2_2021(RegionABC):
     """Regions for SA2_2021."""
+
+    raw_geometry_url = SA1_2021_RAW_FILE_URL
 
     @classproperty
     def id(cls) -> str:
@@ -24,7 +25,7 @@ class SA2_2021(RegionABC):
     @classproperty
     def raw_geometry_file(cls) -> str:
         """Get the path to the raw data shapefile."""
-        raw_geometry_file = os.path.join(ROOT_DIR, "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp")
+        raw_geometry_file = SA1_2021_RAW_FILE
         return raw_geometry_file
 
     @classmethod

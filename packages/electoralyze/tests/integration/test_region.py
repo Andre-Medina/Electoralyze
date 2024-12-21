@@ -39,7 +39,7 @@ def test_region_process_raw(region_class):
 
         #### Re processing data ####
 
-        region_class.process_raw()
+        region_class.process_raw(download=True)
 
         geometry_new = region_class.geometry
         metadata_new = region_class.metadata
