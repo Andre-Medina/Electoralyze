@@ -29,7 +29,7 @@ def test_true_region_file_names():
         "data/regions/SA1_2021/metadata.parquet"
     ), "Bad region metadata file path"
     assert region.SA1_2021.raw_geometry_file.endswith(
-        "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp"
+        "data/raw/SA1_2021_AUST_GDA2020.zip"
     ), "Bad region raw geom file path"
 
     assert os.path.isfile(region.SA1_2021.geometry_file), "Cant find SA1_2021 processed geom."

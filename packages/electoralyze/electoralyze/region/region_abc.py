@@ -245,8 +245,19 @@ class RegionABC(ABC):
 
     @classmethod
     def process_raw(cls, *, force_new: bool = False, download: bool = False):
-        """Extract, transform and save the raw data to create data for `cls.geometry` and `cls.metadata`."""
-        if download:
+        """Extract, transform and save the raw data to create data for `cls.geometry` and `cls.metadata`.
+
+        Parameters
+        ----------
+        force_new (bool, optional): If True, will force a new download of the raw data. Defaults to False.
+        download (bool, optional): If True, will download the raw data. Defaults to False.
+
+        Returns
+        -------
+        None, updates `cls.geometry` and `cls.metadata`
+
+        """
+        if download or force_new:
             print("Downloading raw...")
             cls.download_data(force_new=force_new)
 
