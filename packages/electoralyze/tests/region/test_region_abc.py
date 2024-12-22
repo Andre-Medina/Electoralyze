@@ -24,6 +24,8 @@ def test_true_region_file_names():
 
     if this fails, try running `region.SA1_2021.process_raw()` locally.
     """
+    assert region.SA1_2021.raw_geometry_url.endswith("SA1_2021_AUST_SHP_GDA2020.zip"), "Bad region raw geom url"
+    assert region.SA1_2021.raw_geometry_url.startswith("https://www.abs.gov.au"), "Bad region raw geom url"
     assert region.SA1_2021.geometry_file.endswith("data/regions/SA1_2021/geometry.parquet"), "Bad region geom file path"
     assert region.SA1_2021.metadata_file.endswith(
         "data/regions/SA1_2021/metadata.parquet"
