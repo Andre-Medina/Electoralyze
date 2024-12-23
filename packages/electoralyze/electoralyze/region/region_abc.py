@@ -365,6 +365,9 @@ class RegionABC(ABC):
         -------
         st.GeoDataFrame: In any format with any number columns. Should be accepted by `.transform`.
         """
+        if not os.path.exists(cls.raw_geometry_file):
+            raise FileNotFoundError(f"File not found: {cls.raw_geometry_file}")
+
         geometry_raw_gpd = pyogrio.read_dataframe(cls.raw_geometry_file)
         geometry_raw_st = to_geopolars(geometry_raw_gpd)
         return geometry_raw_st

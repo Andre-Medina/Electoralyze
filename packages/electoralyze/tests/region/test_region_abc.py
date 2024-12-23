@@ -1,10 +1,13 @@
 import os
+import tempfile
 import timeit
 
 import geopandas as gpd
 import polars as pl
+import polars_st as st
 import pytest
 from electoralyze import region
+from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas
 from electoralyze.common.testing.region_fixture import RegionMocked, read_true_geometry, read_true_metadata
 from geopandas import testing as gpd_testing  # noqa: F401
@@ -102,3 +105,77 @@ def test_region_fixture_still_processed(region: RegionMocked):
 
     pl.testing.assert_frame_equal(region.RegionA.metadata, read_true_metadata("region_a"))
     pl.testing.assert_frame_equal(region.RegionB.metadata, read_true_metadata("region_b"))
+
+
+def test_region_downloads_raw(region: RegionMocked):
+    """Test region downloads raw data when needed."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        raw_geometry_file = f"{temp_dir}/raw_geometry/country_code/shape.shp"
+
+        class TempRegion(region._RegionMockedABC):
+            raw_geometry_url = (
+                "https://raw.githubusercontent.com/datasets/" "geo-boundaries-world-110m/master/countries.geojson"
+            )
+
+            @classproperty
+            def raw_geometry_file(self) -> str:
+                """Raw file."""
+                return raw_geometry_file
+
+            @classproperty
+            def id(self) -> str:
+                """Id for country_code."""
+                return "country_code"
+
+            @classmethod
+            def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
+                """Transformed file."""
+                geometry_with_metadata = geometry_raw.select(
+                    pl.col("sov_a3").alias("country_code"),
+                    pl.struct(
+                        pl.col("name_long").alias("name"),
+                    ).alias("metadata"),
+                    pl.col("geometry"),
+                )
+                return geometry_with_metadata
+
+        ### Testing through `download_data` ###
+
+        assert not os.path.exists(TempRegion.raw_geometry_file), "The should not be data yet."
+
+        TempRegion.download_data()
+        assert os.path.exists(TempRegion.raw_geometry_file), "Data should have downloaded."
+
+        time_initial = os.path.getmtime(TempRegion.raw_geometry_file)
+
+        TempRegion.download_data(force_new=False)
+        time_redownload = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial == time_redownload, "The data should not have changed."
+
+        TempRegion.download_data(force_new=True)
+        time_force_new = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial != time_force_new, "The data should have changed."
+
+        ### Reset data ###
+        TempRegion._geometry_cached.cache_clear()
+        TempRegion._metadata_cached.cache_clear()
+        os.remove(TempRegion.raw_geometry_file)
+        assert not os.path.exists(TempRegion.raw_geometry_file), "The should be no data anymore."
+
+        ### Testing through `process_raw`` ###
+
+        with pytest.raises(FileNotFoundError):
+            TempRegion.process_raw(download=False)
+
+        TempRegion.process_raw(download=True)
+        assert os.path.exists(TempRegion.raw_geometry_file), "Data should have downloaded."
+
+        time_initial = os.path.getmtime(TempRegion.raw_geometry_file)
+
+        TempRegion.process_raw(download=True)
+        time_redownload = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial == time_redownload, "The data should not have changed."
+
+        TempRegion.process_raw(force_new=True)
+        time_force_new = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial != time_force_new, "The data should have changed."

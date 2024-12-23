@@ -41,10 +41,12 @@ class RegionMocked:
 
     RegionA: RegionABC
     RegionB: RegionABC
+    _RegionMockedABC: RegionABC
 
-    def __init__(self, region_a, region_b):
+    def __init__(self, region_a, region_b, _RegionMockedABC):
         self.RegionA = region_a
         self.RegionB = region_b
+        self._RegionMockedABC = _RegionMockedABC
 
 
 @pytest.fixture(scope="session")
@@ -130,7 +132,7 @@ def region():
                 """Raw file."""
                 return region_b_shape
 
-        region_class = RegionMocked(region_a=RegionA, region_b=RegionB)
+        region_class = RegionMocked(region_a=RegionA, region_b=RegionB, _RegionMockedABC=RegionMockedABC)
 
         yield region_class
 
