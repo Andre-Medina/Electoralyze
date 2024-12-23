@@ -60,6 +60,8 @@ def test_download_file():
         file_path = os.path.join(temp_dir, "test_file.geojson")
         url = "https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson"
 
+        assert not os.path.exists(file_path), "file should not exist yet."
+
         download_file(url, file_path)
 
-        assert os.path.exists(file_path)
+        assert os.path.exists(file_path), "file was not downloaded."
