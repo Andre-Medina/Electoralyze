@@ -244,13 +244,13 @@ class RegionABC(ABC):
     #### PROCESSING #########
 
     @classmethod
-    def process_raw(cls, *, force_new: bool = False, download: bool = False):
+    def process_raw(cls, *, force_new: bool = False, download: bool = True) -> None:
         """Extract, transform and save the raw data to create data for `cls.geometry` and `cls.metadata`.
 
         Parameters
         ----------
         force_new (bool, optional): If True, will force a new download of the raw data. Defaults to False.
-        download (bool, optional): If True, will download the raw data. Defaults to False.
+        download (bool, optional): If True, will download the raw data. Defaults to True.
 
         Returns
         -------
@@ -284,7 +284,7 @@ class RegionABC(ABC):
 
     @classmethod
     def download_data(cls, *, force_new: bool = False):
-        """Download the raw data from the source. Must be called before `process_raw`."""
+        """Download the raw data from the source."""
         if (not force_new) and (os.path.exists(cls.raw_geometry_file)):
             return
         download_file(cls.raw_geometry_url, cls.raw_geometry_file, timeout=cls.timeout)
@@ -366,7 +366,7 @@ class RegionABC(ABC):
         st.GeoDataFrame: In any format with any number columns. Should be accepted by `.transform`.
         """
         if not os.path.exists(cls.raw_geometry_file):
-            raise FileNotFoundError(f"File not found: {cls.raw_geometry_file}")
+            raise FileNotFoundError(f"File not found: {cls.raw_geometry_file!r}")
 
         geometry_raw_gpd = pyogrio.read_dataframe(cls.raw_geometry_file)
         geometry_raw_st = to_geopolars(geometry_raw_gpd)

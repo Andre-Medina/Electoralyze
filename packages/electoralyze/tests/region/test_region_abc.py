@@ -167,12 +167,12 @@ def test_region_downloads_raw(region: RegionMocked):
         with pytest.raises(FileNotFoundError):
             TempRegion.process_raw(download=False)
 
-        TempRegion.process_raw(download=True)
+        TempRegion.process_raw()  # download=True
         assert os.path.exists(TempRegion.raw_geometry_file), "Data should have downloaded."
 
         time_initial = os.path.getmtime(TempRegion.raw_geometry_file)
 
-        TempRegion.process_raw(download=True)
+        TempRegion.process_raw()  # download=True
         time_redownload = os.path.getmtime(TempRegion.raw_geometry_file)
         assert time_initial == time_redownload, "The data should not have changed."
 
