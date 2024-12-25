@@ -36,6 +36,7 @@ class DownloadIfNeededOptions:
         (region.SA1_2021, ForceNewOptions),
         (region.SA1_2021, SkipDownloadOptions),
         (region.SA2_2021, DownloadIfNeededOptions),
+        (region.Federal2022, DownloadIfNeededOptions),
     ],
 )
 def test_region_process_raw(region_class: RegionABC, options: Any):

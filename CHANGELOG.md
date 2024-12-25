@@ -15,3 +15,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RegionABC to create a API for different regions
 - SA1_2021 region with processed data
 - SA2_2021 region with processed data
+- Federal election 2022 boundaries with processed data
