@@ -1,4 +1,5 @@
 import tempfile
+from typing import Any
 
 import geopandas as gpd
 import polars as pl
@@ -10,14 +11,35 @@ from geopandas import testing as gpd_testing  # noqa: F401
 from polars import testing as pl_testing  # noqa: F401
 
 
+# NOTE: These are classes so pytest reads the names
+class ForceNewOptions:
+    """Option for process_raw, Force new data to be downloaded."""
+
+    force_new = True
+
+
+class SkipDownloadOptions:
+    """Option for process_raw, Skip downloading data."""
+
+    download = False
+
+
+class DownloadIfNeededOptions:
+    """Option for process_raw, Download data if it doesn't exist."""
+
+    download = True
+
+
 @pytest.mark.parametrize(
-    "region_class",
+    "region_class, options",
     [
-        (region.SA1_2021),
-        (region.SA2_2021),
+        (region.SA1_2021, ForceNewOptions),
+        (region.SA1_2021, SkipDownloadOptions),
+        (region.SA2_2021, DownloadIfNeededOptions),
+        (region.Federal2022, DownloadIfNeededOptions),
     ],
 )
-def test_region_process_raw(region_class: RegionABC):
+def test_region_process_raw(region_class: RegionABC, options: Any):
     """Test recreating region geometry and compares it to whats stored."""
     # assert os.path.isfile(region.SA1_2021.raw_geometry_file), "Cant find SA1_2021 raw data." Issue #10
 
@@ -39,7 +61,10 @@ def test_region_process_raw(region_class: RegionABC):
 
         #### Re processing data ####
 
-        region_class.process_raw()
+        region_class.process_raw(
+            download=getattr(options, "download", True),
+            force_new=getattr(options, "force_new", False),
+        )
 
         geometry_new = region_class.geometry
         metadata_new = region_class.metadata

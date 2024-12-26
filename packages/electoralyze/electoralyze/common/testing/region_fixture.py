@@ -200,6 +200,7 @@ class RegionMocked:
     rectangle: RegionABC
     square: RegionABC
     l_and_r: RegionABC
+    _RegionMockedABC: RegionABC
 
     def __init__(self, **regions: dict[REGIONS, RegionABC]):
         for region_id, region_ in regions.items():
@@ -303,7 +304,7 @@ def create_fake_regions(temp_dir: str):
 
         region_classes[region_id] = create_new_region(region_id)
 
-    region_class = RegionMocked(**region_classes)
+    region_class = RegionMocked(_RegionMockedABC=RegionMockedABC, **region_classes)
 
     for region_id in REGION_IDS:
         region_class.from_id(region_id).process_raw()

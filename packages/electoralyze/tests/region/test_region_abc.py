@@ -1,10 +1,13 @@
 import os
+import tempfile
 import timeit
 
 import geopandas as gpd
 import polars as pl
+import polars_st as st
 import pytest
 from electoralyze import region
+from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas
 from electoralyze.common.testing.region_fixture import (
     FOUR_SQUARE_REGION_ID,
@@ -30,12 +33,14 @@ def test_true_region_file_names():
 
     if this fails, try running `region.SA1_2021.process_raw()` locally.
     """
+    assert region.SA1_2021.raw_geometry_url.endswith("SA1_2021_AUST_SHP_GDA2020.zip"), "Bad region raw geom url"
+    assert region.SA1_2021.raw_geometry_url.startswith("https://www.abs.gov.au"), "Bad region raw geom url"
     assert region.SA1_2021.geometry_file.endswith("data/regions/SA1_2021/geometry.parquet"), "Bad region geom file path"
     assert region.SA1_2021.metadata_file.endswith(
         "data/regions/SA1_2021/metadata.parquet"
     ), "Bad region metadata file path"
     assert region.SA1_2021.raw_geometry_file.endswith(
-        "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp"
+        "data/raw/SA1_2021_AUST_GDA2020.zip"
     ), "Bad region raw geom file path"
 
     assert os.path.isfile(region.SA1_2021.geometry_file), "Cant find SA1_2021 processed geom."
@@ -119,3 +124,77 @@ def test_region_fixture_still_processed(region: RegionMocked):
             region.from_id(region_id).geometry.pipe(to_geopandas), read_true_geometry(region_id).pipe(to_geopandas)
         )
         pl.testing.assert_frame_equal(region.from_id(region_id).metadata, read_true_metadata(region_id))
+
+
+def test_region_downloads_raw(region: RegionMocked):
+    """Test region downloads raw data when needed."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        raw_geometry_file = f"{temp_dir}/raw_geometry/country_code/shape.shp"
+
+        class TempRegion(region._RegionMockedABC):
+            raw_geometry_url = (
+                "https://raw.githubusercontent.com/datasets/" "geo-boundaries-world-110m/master/countries.geojson"
+            )
+
+            @classproperty
+            def raw_geometry_file(self) -> str:
+                """Raw file."""
+                return raw_geometry_file
+
+            @classproperty
+            def id(self) -> str:
+                """Id for country_code."""
+                return "country_code"
+
+            @classmethod
+            def _transform_geometry_raw(cls, geometry_raw: st.GeoDataFrame) -> st.GeoDataFrame:
+                """Transformed file."""
+                geometry_with_metadata = geometry_raw.select(
+                    pl.col("sov_a3").alias("country_code"),
+                    pl.struct(
+                        pl.col("name_long").alias("name"),
+                    ).alias("metadata"),
+                    pl.col("geometry"),
+                )
+                return geometry_with_metadata
+
+        ### Testing through `download_data` ###
+
+        assert not os.path.exists(TempRegion.raw_geometry_file), "The should not be data yet."
+
+        TempRegion.download_data()
+        assert os.path.exists(TempRegion.raw_geometry_file), "Data should have downloaded."
+
+        time_initial = os.path.getmtime(TempRegion.raw_geometry_file)
+
+        TempRegion.download_data(force_new=False)
+        time_redownload = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial == time_redownload, "The data should not have changed."
+
+        TempRegion.download_data(force_new=True)
+        time_force_new = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial != time_force_new, "The data should have changed."
+
+        ### Reset data ###
+        TempRegion._geometry_cached.cache_clear()
+        TempRegion._metadata_cached.cache_clear()
+        os.remove(TempRegion.raw_geometry_file)
+        assert not os.path.exists(TempRegion.raw_geometry_file), "The should be no data anymore."
+
+        ### Testing through `process_raw`` ###
+
+        with pytest.raises(FileNotFoundError):
+            TempRegion.process_raw(download=False)
+
+        TempRegion.process_raw()  # download=True
+        assert os.path.exists(TempRegion.raw_geometry_file), "Data should have downloaded."
+
+        time_initial = os.path.getmtime(TempRegion.raw_geometry_file)
+
+        TempRegion.process_raw()  # download=True
+        time_redownload = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial == time_redownload, "The data should not have changed."
+
+        TempRegion.process_raw(force_new=True)
+        time_force_new = os.path.getmtime(TempRegion.raw_geometry_file)
+        assert time_initial != time_force_new, "The data should have changed."
