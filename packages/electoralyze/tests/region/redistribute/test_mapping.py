@@ -1,6 +1,7 @@
 import polars as pl
 import pytest
 from electoralyze.common.testing.region_fixture import (
+    FAR_RIGHT_REGION_ID,
     FOUR_SQUARE_REGION_ID,
     THREE_RECTANGLE_REGION_ID,
     THREE_TRIANGLES_REGION_ID,
@@ -18,28 +19,34 @@ from polars import testing  # noqa: F401
     "_name, region_id_from, region_id_to, expected",
     [
         (
-            "a to b, ",
+            "four to triangle, ",
             FOUR_SQUARE_REGION_ID,
             THREE_TRIANGLES_REGION_ID,
             get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
         ),
         (
-            "b to a, ",
+            "triangle to four, ",
             THREE_TRIANGLES_REGION_ID,
             FOUR_SQUARE_REGION_ID,
             get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
         ),
         (
-            "a to c, ",
+            "four to rectangle, ",
             FOUR_SQUARE_REGION_ID,
             THREE_RECTANGLE_REGION_ID,
             get_true_redistribution(THREE_RECTANGLE_REGION_ID, FOUR_SQUARE_REGION_ID),
         ),
         (
-            "b to c, ",
+            "triangle to rectangle, ",
             THREE_TRIANGLES_REGION_ID,
             THREE_RECTANGLE_REGION_ID,
             get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
+        ),
+        (
+            "square to far right, ",
+            FOUR_SQUARE_REGION_ID,
+            FAR_RIGHT_REGION_ID,
+            get_true_redistribution(FOUR_SQUARE_REGION_ID, FAR_RIGHT_REGION_ID),
         ),
     ],
 )
@@ -63,7 +70,7 @@ def test_create_intersection_area_mapping(
     "_name, test_case",
     [
         (
-            "a to b: basic no saving, ",
+            "quadrants to triangles: basic no saving, ",
             dict(
                 region_id_from=FOUR_SQUARE_REGION_ID,
                 region_id_to=THREE_TRIANGLES_REGION_ID,
@@ -75,7 +82,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "b to a: file not saved, ",
+            "triangles to quadrants: file not saved, ",
             dict(
                 region_id_from=THREE_TRIANGLES_REGION_ID,
                 region_id_to=FOUR_SQUARE_REGION_ID,
@@ -86,7 +93,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "a to c: no file at all, ",
+            "quadrants to rectangles: no file at all, ",
             dict(
                 region_id_from=FOUR_SQUARE_REGION_ID,
                 region_id_to=THREE_RECTANGLE_REGION_ID,
@@ -97,7 +104,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "b to c: using simplified, ",
+            "triangles to rectangles: using simplified, ",
             dict(
                 region_id_from=THREE_TRIANGLES_REGION_ID,
                 region_id_to=THREE_RECTANGLE_REGION_ID,
@@ -108,7 +115,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "b to c: trying to use centroid, ",
+            "triangles to rectangles: trying to use centroid, ",
             dict(
                 region_id_from=THREE_TRIANGLES_REGION_ID,
                 region_id_to=THREE_RECTANGLE_REGION_ID,
@@ -119,7 +126,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "b to c: trying to save simplified, ",
+            "triangles to rectangles: trying to save simplified, ",
             dict(
                 region_id_from=THREE_TRIANGLES_REGION_ID,
                 region_id_to=THREE_RECTANGLE_REGION_ID,
@@ -131,7 +138,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "a to b, saving basic, ",
+            "quadrants to triangles: saving basic, ",
             dict(
                 region_id_from=FOUR_SQUARE_REGION_ID,
                 region_id_to=THREE_TRIANGLES_REGION_ID,
@@ -143,7 +150,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "b to a: file still exists, ",
+            "triangles to quadrants: file still exists, ",
             dict(
                 region_id_from=THREE_TRIANGLES_REGION_ID,
                 region_id_to=FOUR_SQUARE_REGION_ID,
@@ -155,7 +162,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "a to c: no file after not saving, ",
+            "quadrants to rectangles: no file after not saving, ",
             dict(
                 region_id_from=FOUR_SQUARE_REGION_ID,
                 region_id_to=THREE_RECTANGLE_REGION_ID,
@@ -167,7 +174,7 @@ def test_create_intersection_area_mapping(
             ),
         ),
         (
-            "b to c: using simplified, ",
+            "triangles to rectangles: using simplified, ",
             dict(
                 region_id_from=THREE_TRIANGLES_REGION_ID,
                 region_id_to=THREE_RECTANGLE_REGION_ID,
