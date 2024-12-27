@@ -196,9 +196,7 @@ def _get_intersection_area(
     #     st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
     # )
     intersection_area = (
-        geometry_combined
-        # .loc[lambda df: df["geometry_from"].intersects(df["geometry_to"], align=True)]
-        .assign(intersection_area=lambda df: df["geometry_from"].intersection(df["geometry_to"]).area)
+        geometry_combined.assign(intersection_area=lambda df: df["geometry_from"].intersection(df["geometry_to"]).area)
         .drop(["geometry_from", "geometry_to"], axis=1)
         .pipe(pl.DataFrame)
     )
