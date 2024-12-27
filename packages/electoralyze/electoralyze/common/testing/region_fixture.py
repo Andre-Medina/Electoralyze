@@ -17,6 +17,7 @@ THREE_TRIANGLES_REGION_ID = "triangle"
 THREE_RECTANGLE_REGION_ID = "rectangle"
 ONE_SQUARE_REGION_ID = "square"
 LEFT_RIGHT_REGION_ID = "l_and_r"
+FAR_RIGHT_REGION_ID = "far_right"
 
 REGIONS = Literal[
     FOUR_SQUARE_REGION_ID,
@@ -24,6 +25,7 @@ REGIONS = Literal[
     THREE_RECTANGLE_REGION_ID,
     ONE_SQUARE_REGION_ID,
     LEFT_RIGHT_REGION_ID,
+    FAR_RIGHT_REGION_ID,
 ]
 REGION_IDS = [
     FOUR_SQUARE_REGION_ID,
@@ -31,6 +33,7 @@ REGION_IDS = [
     THREE_RECTANGLE_REGION_ID,
     ONE_SQUARE_REGION_ID,
     LEFT_RIGHT_REGION_ID,
+    FAR_RIGHT_REGION_ID,
 ]
 REGION_JSONS = {
     ONE_SQUARE_REGION_ID: {
@@ -129,6 +132,26 @@ REGION_JSONS = {
             "POLYGON ((-4 2, 4 2, 4 4, -4 4, -4 2))",
         ],
     },
+    FAR_RIGHT_REGION_ID: {
+        #  Three horizontal rectangles
+        #  3───────────────────────────────┐
+        #  │   F1  │   F2  │   F3  │   F4  │
+        #  │       │       │       │       │
+        #  0───────3───────6───────9──────12
+        #          |   F5  |
+        #          |       |
+        # -3       ---------
+        FAR_RIGHT_REGION_ID: ["F1", "F2", "F3", "F4", "F5"],
+        f"{FAR_RIGHT_REGION_ID}_name": ["a", "a", "a", "a", "a"],
+        "extra": ["5", "5", "5", "5", "5"],
+        "geometry": [
+            "POLYGON ((0 0, 3 0, 3 3, 0 3, 0 0))",
+            "POLYGON ((3 0, 6 0, 6 3, 3 3, 3 0))",
+            "POLYGON ((6 0, 9 0, 9 3, 6 3, 6 0))",
+            "POLYGON ((9 0, 12 0, 12 3, 9 3, 9 0))",
+            "POLYGON ((3 0, 6 0, 6 -3, 3 -3, 3 0))",
+        ],
+    },
 }
 
 REDISTRIBUTE_MAPPINGS = {
@@ -181,6 +204,22 @@ REDISTRIBUTE_MAPPINGS = {
         schema=pl.Schema(
             {THREE_TRIANGLES_REGION_ID: pl.String, THREE_RECTANGLE_REGION_ID: pl.String, "mapping": pl.Float64}
         ),
+    ),
+    tuple({FAR_RIGHT_REGION_ID, FOUR_SQUARE_REGION_ID}): pl.DataFrame(
+        [
+            {FAR_RIGHT_REGION_ID: "F1", FOUR_SQUARE_REGION_ID: "N", "mapping": 9.0},
+            {FAR_RIGHT_REGION_ID: "F2", FOUR_SQUARE_REGION_ID: "N", "mapping": 3.0},
+            {FAR_RIGHT_REGION_ID: None, FOUR_SQUARE_REGION_ID: "N", "mapping": 4.0},
+            {FAR_RIGHT_REGION_ID: "F2", FOUR_SQUARE_REGION_ID: None, "mapping": 6.0},
+            {FAR_RIGHT_REGION_ID: "F3", FOUR_SQUARE_REGION_ID: None, "mapping": 9.0},
+            {FAR_RIGHT_REGION_ID: "F4", FOUR_SQUARE_REGION_ID: None, "mapping": 9.0},
+            {FAR_RIGHT_REGION_ID: None, FOUR_SQUARE_REGION_ID: "M", "mapping": 16.0},
+            {FAR_RIGHT_REGION_ID: None, FOUR_SQUARE_REGION_ID: "O", "mapping": 16.0},
+            {FAR_RIGHT_REGION_ID: "F5", FOUR_SQUARE_REGION_ID: "P", "mapping": 3.0},
+            {FAR_RIGHT_REGION_ID: "F5", FOUR_SQUARE_REGION_ID: None, "mapping": 6.0},
+            {FAR_RIGHT_REGION_ID: None, FOUR_SQUARE_REGION_ID: "P", "mapping": 13.0},
+        ],
+        schema=pl.Schema({FAR_RIGHT_REGION_ID: pl.String, FOUR_SQUARE_REGION_ID: pl.String, "mapping": pl.Float64}),
     ),
 }
 

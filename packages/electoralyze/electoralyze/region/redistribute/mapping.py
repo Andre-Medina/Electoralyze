@@ -5,6 +5,7 @@ import polars as pl
 import polars_st as st
 
 from electoralyze.common.files import create_path
+from electoralyze.common.geometry import to_geopandas
 
 from ..region_abc import RegionABC
 from .utils import MAPPING_OPTIONS
@@ -156,14 +157,52 @@ def _get_intersection_area(
     geometry_from: st.GeoDataFrame,
     geometry_to: st.GeoDataFrame,
 ) -> pl.DataFrame:
-    """Find intersection area between two geometries."""
-    geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
-        geometry_to.rename({"geometry": "geometry_to"}), how="cross"
+    """Find intersection area between two geometries.
+
+    Returns
+    -------
+    pl.DataFrame
+    ```python
+    shape: (25, 3)
+    ┌──────────────┬─────────────┬───────────────────┐
+    │ federal_2022 ┆ SA1_2021    ┆ intersection_area │
+    │ ---          ┆ ---         ┆ ---               │
+    │ str          ┆ i64         ┆ f64               │
+    ╞══════════════╪═════════════╪═══════════════════╡
+    │ Bean         ┆ 10102101217 ┆ 7.6340e-8         │
+    │ Canberra     ┆ 10102100908 ┆ 5.5317e-8         │
+    │ Canberra     ┆ 10102100909 ┆ 3.9356e-8         │
+    │ Canberra     ┆ 10102100910 ┆ 3.6131e-9         │
+    │ Canberra     ┆ 10102100927 ┆ 3.9933e-8         │
+    │ …            ┆ …           ┆ …                 │
+    │ Gilmore      ┆ 10102100707 ┆ 0.000002          │
+    │ Gilmore      ┆ 10102100710 ┆ 0.000005          │
+    │ Hume         ┆ 10102100701 ┆ 0.035891          │
+    │ Hume         ┆ 10102100709 ┆ 0.000004          │
+    │ Hume         ┆ 10102100710 ┆ 0.000343          │
+    └──────────────┴─────────────┴───────────────────┘
+    ```
+    """
+    # geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
+    #     geometry_to.rename({"geometry": "geometry_to"}), how="cross"
+    # )
+    geometry_combined = (
+        geometry_from.pipe(to_geopandas)
+        .rename(columns={"geometry": "geometry_from"})
+        .merge(geometry_to.pipe(to_geopandas).rename(columns={"geometry": "geometry_to"}), how="cross")
     )
-    intersection_area = geometry_combined.select(
-        pl.exclude("geometry_from", "geometry_to"),
-        st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
+    # intersection_area = geometry_combined.select(
+    #     pl.exclude("geometry_from", "geometry_to"),
+    #     st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
+    # )
+    intersection_area = (
+        geometry_combined
+        # .loc[lambda df: df["geometry_from"].intersects(df["geometry_to"], align=True)]
+        .assign(intersection_area=lambda df: df["geometry_from"].intersection(df["geometry_to"]).area)
+        .drop(["geometry_from", "geometry_to"], axis=1)
+        .pipe(pl.DataFrame)
     )
+
     return intersection_area
 
 
@@ -178,7 +217,8 @@ def _get_remaining_area(
     intersected_area = intersection_area.group_by(region_id).agg(
         pl.col("intersection_area").sum().alias("intersected_area")
     )
-    total_area = geometry.with_columns(
+    total_area = geometry.select(
+        region_id,
         st.geom("geometry").st.area().alias("total_area"),
         pl.lit(None).cast(intersection_area[alt_region_id].dtype).alias(alt_region_id),
     )
@@ -186,9 +226,14 @@ def _get_remaining_area(
         total_area.join(
             intersected_area,
             on=region_id,
+            how="full",
+            coalesce=True,
         )
         .with_columns(
-            pl.col("total_area").sub(pl.col("intersected_area")).clip(lower_bound=0).alias("intersection_area"),
+            pl.col("total_area")
+            .sub(pl.col("intersected_area").fill_null(0))
+            .clip(lower_bound=0)
+            .alias("intersection_area"),
         )
         .select(intersection_area.columns)
     )
