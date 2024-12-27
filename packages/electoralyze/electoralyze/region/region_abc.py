@@ -17,7 +17,7 @@ METADATA_FILE = "{root_dir}/data/regions/{region}/metadata.parquet"
 _REDISTRIBUTE_FILE = "{root_dir}/data/regions/redistribute/{{mapping}}/{{region_a}}_{{region_b}}.parquet"
 
 
-FULL_GEOMETRY_TTL_S = 300
+FULL_GEOMETRY_TTL_S = 900
 BASE_DOWNLOAD_TIMEOUT = 60
 
 

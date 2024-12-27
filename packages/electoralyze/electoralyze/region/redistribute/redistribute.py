@@ -49,6 +49,9 @@ def redistribute(
         - None = only use existing static redistribution map files.
         - False = Will create redistribution maps using simplified geometries for each region.
         - True = Will create redistribution maps using full geometries for each region (EXPENSIVE!).
+    errors: Literal["raise", "warning"] = "raise",
+        - "raise": Will raise an error if the redistribution fails.
+        - "warning": Will print a warning if the redistribution fails.
 
 
     Examples

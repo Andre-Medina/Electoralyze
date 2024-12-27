@@ -1,7 +1,10 @@
+import logging
 import os
 
 import polars as pl
 import polars_st as st
+
+from electoralyze.common.files import create_path
 
 from ..region_abc import RegionABC
 from .utils import MAPPING_OPTIONS
@@ -13,12 +16,22 @@ def get_region_mapping_base(
     *,
     mapping_method: MAPPING_OPTIONS,
     redistribute_with_full: bool | None = None,
+    save_data: bool = False,
+    force_new: bool = False,
 ) -> pl.DataFrame:
     """Get region mapping base.
 
     Parameters
     ----------
-    refer to `redistribute.py::redistribute`
+    region_from: RegionABC, From region to redistribute, should be a column in the dataframe.
+    region_to: RegionABC, To region to redistribute, Will output data with this column.
+    mapping_method: Literal["intersection_area", "centroid_distance"], mapping method, refer to `redistribute`.
+    redistribute_with_full: bool | None = None,
+        - None = only use existing static redistribution map files.
+        - False = Will create redistribution maps using simplified geometries for each region.
+        - True = Will create redistribution maps using full geometries for each region (EXPENSIVE!).
+    save_data: bool = False, save data locally if True.
+    force_new: bool = False, force new mapping file, even if one already exists.
 
     Returns
     -------
@@ -44,64 +57,43 @@ def get_region_mapping_base(
     │ null     ┆ B        ┆ 1.0      │
     └──────────┴──────────┴──────────┘
     ```
-
     """
     mapping_file = _get_region_mapping_file(region_from, region_to, mapping=mapping_method)
 
-    if not os.path.exists(mapping_file):
-        if redistribute_with_full is None:
-            raise FileNotFoundError(
-                f"Mapping file not found for `{region_from.id}` -> `{region_to.id}` under mapping `{mapping_method}`. "
-                "Consider generating it with `create_region_mapping_base` or pass `redistribute_with_full=True/False`."
-            )
-        region_mapping = create_region_mapping_base(
-            region_from,
-            region_to,
-            mapping=mapping_method,
-            redistribute_with_full=redistribute_with_full,
-            save_data=False,
+    if (redistribute_with_full is None) and (not os.path.exists(mapping_file)):
+        raise FileNotFoundError(
+            f"Mapping file not found for `{region_from.id}` -> `{region_to.id}` under mapping `{mapping_method}`. "
+            "Consider passing `redistribute_with_full=True/False`."
         )
+    if (force_new is True) and (redistribute_with_full is None):
+        raise ValueError("Cannot force new mapping file if `redistribute_with_full = None`")
+    if (save_data is True) and redistribute_with_full is not True:
+        raise ValueError("Cannot save data with simplified regions. set `redistribute_with_full = True` to save")
+
+    if force_new or (not os.path.exists(mapping_file)):
+        logging.info("Generating region mapping.")
+
+        if redistribute_with_full:
+            geometry_from: st.GeoDataFrame = region_from.get_raw_geometry()
+            geometry_to: st.GeoDataFrame = region_to.get_raw_geometry()
+        else:
+            geometry_from: st.GeoDataFrame = region_from.geometry
+            geometry_to: st.GeoDataFrame = region_to.geometry
+
+        match mapping_method:
+            case "intersection_area":
+                region_mapping = _create_intersection_area_mapping(geometry_from, geometry_to)
+            case "centroid_distance":
+                region_mapping = _create_centroid_distance_mapping(geometry_from, geometry_to)
+            case _:
+                raise ValueError(f"Unknown mapping method `{mapping_method}`")
+
+        if save_data:
+            create_path(mapping_file)
+            region_mapping.write_parquet(mapping_file)
     else:
+        logging.info("Reading region mapping.")
         region_mapping = pl.read_parquet(mapping_file)
-
-    return region_mapping
-
-
-def create_region_mapping_base(
-    region_from: RegionABC,
-    region_to: RegionABC,
-    *,
-    mapping: MAPPING_OPTIONS,
-    redistribute_with_full: bool = True,
-    save_data: bool = True,
-) -> pl.DataFrame:
-    """Create region mapping base, saves data locally if `save_data = True`.
-
-    Parameters
-    ----------
-    refer to `redistribute.py::redistribute`
-
-    Returns
-    -------
-    pl.DataFrame, mapping from region_from to region_to if needed
-    """
-    if redistribute_with_full:
-        geometry_from: st.GeoDataFrame = region_from.get_raw_geometry()
-        geometry_to: st.GeoDataFrame = region_to.get_raw_geometry()
-    else:
-        geometry_from: st.GeoDataFrame = region_from.geometry
-        geometry_to: st.GeoDataFrame = region_to.geometry
-
-    match mapping:
-        case "intersection_area":
-            region_mapping = _create_intersection_area_mapping(geometry_from, geometry_to)
-        case "centroid_distance":
-            region_mapping = _create_centroid_distance_mapping(geometry_from, geometry_to)
-
-    if save_data:
-        mapping_file = _get_region_mapping_file(region_from, region_to, mapping=mapping)
-        os.makedirs(mapping_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
-        region_mapping.write_parquet(mapping_file)
 
     return region_mapping
 
@@ -136,6 +128,8 @@ def _create_intersection_area_mapping(
     └──────────┴──────────┴──────────┘
     ```
     """
+    logging.info("Joining geometries and finding intersection area.")
+
     geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
         geometry_to.rename({"geometry": "geometry_to"}), how="cross"
     )
@@ -144,6 +138,7 @@ def _create_intersection_area_mapping(
         st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
     )
 
+    logging.info("Finding remaining areas.")
     remaining_area_for_from = _get_remaining_area(
         region_id=list(set(geometry_from.columns) - {"geometry"})[0],
         geometry=geometry_from,
@@ -154,6 +149,7 @@ def _create_intersection_area_mapping(
         geometry=geometry_to,
         intersection_area=intersection_area,
     )
+
     intersection_area_complete = (
         pl.concat([intersection_area, remaining_area_for_from, remaining_area_for_to])
         .filter(pl.col("intersection_area") != 0)
@@ -175,8 +171,8 @@ def _get_remaining_area(
         pl.col("intersection_area").sum().alias("intersected_area")
     )
     total_area = geometry.with_columns(
-        st.geom("geometry").st.area().alias("total_are"),
-        pl.lit(None).cast(pl.String).alias(alt_region_id),
+        st.geom("geometry").st.area().alias("total_area"),
+        pl.lit(None).cast(intersection_area[alt_region_id].dtype).alias(alt_region_id),
     )
     remaining_area = (
         total_area.join(
@@ -184,7 +180,7 @@ def _get_remaining_area(
             on=region_id,
         )
         .with_columns(
-            pl.col("total_are").sub(pl.col("intersected_area")).alias("intersection_area"),
+            pl.col("total_area").sub(pl.col("intersected_area")).clip(lower_bound=0).alias("intersection_area"),
         )
         .select(intersection_area.columns)
     )

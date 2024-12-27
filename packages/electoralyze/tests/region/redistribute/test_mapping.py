@@ -8,9 +8,7 @@ from electoralyze.common.testing.region_fixture import (
     get_true_redistribution,
 )
 from electoralyze.region.redistribute.mapping import (
-    MAPPING_OPTIONS,
     _create_intersection_area_mapping,
-    create_region_mapping_base,
     get_region_mapping_base,
 )
 from polars import testing  # noqa: F401
@@ -62,175 +60,150 @@ def test_create_intersection_area_mapping(
 
 
 @pytest.mark.parametrize(
-    "_name, region_id_from, region_id_to, mapping_method, redistribute_with_full, expected, error",
+    "_name, test_case",
     [
         (
-            "a to b, ",
-            FOUR_SQUARE_REGION_ID,
-            THREE_TRIANGLES_REGION_ID,
-            "intersection_area",
-            True,
-            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
-            None,
+            "a to b: basic no saving, ",
+            dict(
+                region_id_from=FOUR_SQUARE_REGION_ID,
+                region_id_to=THREE_TRIANGLES_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=True,
+                save_data=False,
+                expected=get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
+                error=None,
+            ),
         ),
         (
-            "b to a: removes file, ",
-            THREE_TRIANGLES_REGION_ID,
-            FOUR_SQUARE_REGION_ID,
-            "intersection_area",
-            None,
-            None,
-            FileNotFoundError,
+            "b to a: file not saved, ",
+            dict(
+                region_id_from=THREE_TRIANGLES_REGION_ID,
+                region_id_to=FOUR_SQUARE_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=None,
+                expected=None,
+                error=FileNotFoundError,
+            ),
         ),
         (
             "a to c: no file at all, ",
-            FOUR_SQUARE_REGION_ID,
-            THREE_RECTANGLE_REGION_ID,
-            "intersection_area",
-            None,
-            None,
-            FileNotFoundError,
+            dict(
+                region_id_from=FOUR_SQUARE_REGION_ID,
+                region_id_to=THREE_RECTANGLE_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=None,
+                expected=None,
+                error=FileNotFoundError,
+            ),
         ),
         (
-            "b to c: using simplified, , ",
-            THREE_TRIANGLES_REGION_ID,
-            THREE_RECTANGLE_REGION_ID,
-            "intersection_area",
-            False,
-            get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
-            None,
+            "b to c: using simplified, ",
+            dict(
+                region_id_from=THREE_TRIANGLES_REGION_ID,
+                region_id_to=THREE_RECTANGLE_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=False,
+                expected=get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
+                error=None,
+            ),
         ),
         (
-            "b to c: trying to use centroid, , ",
-            THREE_TRIANGLES_REGION_ID,
-            THREE_RECTANGLE_REGION_ID,
-            "centroid_distance",
-            False,
-            None,
-            NotImplementedError,
+            "b to c: trying to use centroid, ",
+            dict(
+                region_id_from=THREE_TRIANGLES_REGION_ID,
+                region_id_to=THREE_RECTANGLE_REGION_ID,
+                mapping_method="centroid_distance",
+                redistribute_with_full=False,
+                expected=None,
+                error=NotImplementedError,
+            ),
+        ),
+        (
+            "b to c: trying to save simplified, ",
+            dict(
+                region_id_from=THREE_TRIANGLES_REGION_ID,
+                region_id_to=THREE_RECTANGLE_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=False,
+                save_data=True,
+                expected=None,
+                error=ValueError,
+            ),
+        ),
+        (
+            "a to b, saving basic, ",
+            dict(
+                region_id_from=FOUR_SQUARE_REGION_ID,
+                region_id_to=THREE_TRIANGLES_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=True,
+                save_data=True,
+                expected=get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
+                error=None,
+            ),
+        ),
+        (
+            "b to a: file still exists, ",
+            dict(
+                region_id_from=THREE_TRIANGLES_REGION_ID,
+                region_id_to=FOUR_SQUARE_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=None,
+                save_data=False,
+                expected=get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
+                error=None,
+            ),
+        ),
+        (
+            "a to c: no file after not saving, ",
+            dict(
+                region_id_from=FOUR_SQUARE_REGION_ID,
+                region_id_to=THREE_RECTANGLE_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=None,
+                save_data=False,
+                expected=None,
+                error=FileNotFoundError,
+            ),
+        ),
+        (
+            "b to c: using simplified, ",
+            dict(
+                region_id_from=THREE_TRIANGLES_REGION_ID,
+                region_id_to=THREE_RECTANGLE_REGION_ID,
+                mapping_method="intersection_area",
+                redistribute_with_full=False,
+                save_data=False,
+                expected=get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
+                error=None,
+            ),
         ),
     ],
 )
 def test_get_region_mapping_base(
     region: RegionMocked,
-    _name,
-    region_id_from: str,
-    region_id_to: str,
-    mapping_method: MAPPING_OPTIONS,
-    redistribute_with_full: bool | None,
-    expected: pl.DataFrame,
-    error: Exception,
+    _name: str,
+    test_case: dict,
 ):
     """Test region fixture keeps saved data."""
-    if error is None:
-        region_mapping_base = get_region_mapping_base(
-            region_from=region.from_id(region_id_from),
-            region_to=region.from_id(region_id_to),
-            mapping_method=mapping_method,
-            redistribute_with_full=redistribute_with_full,
-        )
-        pl.testing.assert_frame_equal(
-            region_mapping_base,
-            expected,
-            check_column_order=False,
-            check_row_order=False,
-        )
-    else:
-        with pytest.raises(error):
-            get_region_mapping_base(
-                region_from=region.from_id(region_id_from),
-                region_to=region.from_id(region_id_to),
-                mapping_method=mapping_method,
-                redistribute_with_full=redistribute_with_full,
-            )
-
-
-@pytest.mark.parametrize(
-    "_name, region_id_from, region_id_to, mapping_method, redistribute_with_full, save_data, expected, error",
-    [
-        (
-            "a to b, typical, ",
-            FOUR_SQUARE_REGION_ID,
-            THREE_TRIANGLES_REGION_ID,
-            "intersection_area",
-            True,
-            True,
-            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
-            None,
-        ),
-        (
-            "b to a: file still there, ",
-            THREE_TRIANGLES_REGION_ID,
-            FOUR_SQUARE_REGION_ID,
-            "intersection_area",
-            None,
-            False,
-            get_true_redistribution(THREE_TRIANGLES_REGION_ID, FOUR_SQUARE_REGION_ID),
-            None,
-        ),
-        (
-            "a to c: no file after not saving, ",
-            FOUR_SQUARE_REGION_ID,
-            THREE_RECTANGLE_REGION_ID,
-            "intersection_area",
-            None,
-            False,
-            None,
-            FileNotFoundError,
-        ),
-        (
-            "b to c: using simplified, ",
-            THREE_TRIANGLES_REGION_ID,
-            THREE_RECTANGLE_REGION_ID,
-            "intersection_area",
-            False,
-            True,
-            get_true_redistribution(THREE_TRIANGLES_REGION_ID, THREE_RECTANGLE_REGION_ID),
-            None,
-        ),
-    ],
-)
-def test_create_region_mapping_base(
-    region: RegionMocked,
-    _name,
-    region_id_from: str,
-    region_id_to: str,
-    mapping_method: MAPPING_OPTIONS,
-    redistribute_with_full: bool | None,
-    save_data: bool,
-    expected: pl.DataFrame,
-    error: Exception,
-):
-    """Test region fixture keeps saved data."""
-    # Create the region data
-    create_region_mapping_base(
-        region_from=region.from_id(region_id_from),
-        region_to=region.from_id(region_id_to),
-        mapping=mapping_method,
-        redistribute_with_full=True if redistribute_with_full is None else redistribute_with_full,
-        save_data=save_data,
+    region_mapping_kwargs = dict(
+        region_from=region.from_id(test_case["region_id_from"]),
+        region_to=region.from_id(test_case["region_id_to"]),
+        mapping_method=test_case["mapping_method"],
+        redistribute_with_full=test_case["redistribute_with_full"],
+        save_data=test_case.get("save_data", False),
+        force_new=test_case.get("force_new", False),
     )
 
-    if error is None:
-        # If no error, get file and check its correct
-        region_mapping_base = get_region_mapping_base(
-            region_from=region.from_id(region_id_from),
-            region_to=region.from_id(region_id_to),
-            mapping_method=mapping_method,
-            redistribute_with_full=redistribute_with_full,
-        )
+    if test_case["error"] is None:
+        region_mapping_base = get_region_mapping_base(**region_mapping_kwargs)
         pl.testing.assert_frame_equal(
             region_mapping_base,
-            expected,
+            test_case["expected"],
             check_column_order=False,
             check_row_order=False,
         )
+
     else:
-        # If error, check it gets raised.
-        with pytest.raises(error):
-            get_region_mapping_base(
-                region_from=region.from_id(region_id_from),
-                region_to=region.from_id(region_id_to),
-                mapping_method=mapping_method,
-                redistribute_with_full=redistribute_with_full,
-            )
+        with pytest.raises(test_case["error"]):
+            get_region_mapping_base(**region_mapping_kwargs)
