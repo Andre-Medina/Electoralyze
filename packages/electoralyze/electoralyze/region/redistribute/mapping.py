@@ -129,14 +129,7 @@ def _create_intersection_area_mapping(
     ```
     """
     logging.info("Joining geometries and finding intersection area.")
-
-    geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
-        geometry_to.rename({"geometry": "geometry_to"}), how="cross"
-    )
-    intersection_area = geometry_combined.select(
-        pl.exclude("geometry_from", "geometry_to"),
-        st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
-    )
+    intersection_area = _get_intersection_area(geometry_from, geometry_to)
 
     logging.info("Finding remaining areas.")
     remaining_area_for_from = _get_remaining_area(
@@ -157,6 +150,21 @@ def _create_intersection_area_mapping(
     )
 
     return intersection_area_complete
+
+
+def _get_intersection_area(
+    geometry_from: st.GeoDataFrame,
+    geometry_to: st.GeoDataFrame,
+) -> pl.DataFrame:
+    """Find intersection area between two geometries."""
+    geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
+        geometry_to.rename({"geometry": "geometry_to"}), how="cross"
+    )
+    intersection_area = geometry_combined.select(
+        pl.exclude("geometry_from", "geometry_to"),
+        st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
+    )
+    return intersection_area
 
 
 def _get_remaining_area(
