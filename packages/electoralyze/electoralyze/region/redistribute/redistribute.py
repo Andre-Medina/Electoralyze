@@ -8,6 +8,8 @@ from ..region_abc import RegionABC
 from .mapping import get_region_mapping_base
 from .utils import AGGREGATION_OPTIONS, MAPPING_OPTIONS, WEIGHT_OPTIONS
 
+DEFAULT_RATIO_TOLERANCE = 0.0001
+
 
 def redistribute(
     data_by_from: pl.DataFrame,
@@ -321,11 +323,15 @@ def _validate(
     data_by_to: pl.DataFrame,
     data_columns: list[str],
     errors: Literal["raise", "warning"],
+    ratio_tolerance: float = DEFAULT_RATIO_TOLERANCE,
 ):
     """Validate that data_by_from and data_by_to have the same amount of data."""
     bad_data_transformations = []
     for data_column in data_columns:
-        if (from_total := data_by_from[data_column].sum()) != (to_total := data_by_to[data_column].sum()):
+        from_total = data_by_from[data_column].sum()
+        to_total = data_by_to[data_column].sum()
+        ratio = to_total / from_total
+        if (ratio > 1 + ratio_tolerance) or (ratio < 1 - ratio_tolerance):
             bad_data_transformations.append(
                 f"Miss match in data for column: {data_column!r}. From: {from_total!r} -> To: {to_total!r}"
             )
