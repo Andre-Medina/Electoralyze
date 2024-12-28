@@ -14,7 +14,7 @@ from electoralyze.common.geometry import to_geopandas, to_geopolars
 
 GEOMETRY_FILE = "{root_dir}/data/regions/{region}/geometry.parquet"
 METADATA_FILE = "{root_dir}/data/regions/{region}/metadata.parquet"
-_REDISTRIBUTE_FILE = "{root_dir}/data/regions/redistribute/{{mapping}}/{{region_a}}_{{region_b}}.parquet"
+_REDISTRIBUTE_FILE = "{root_dir}/data/regions/redistribute/{{mapping}}/{{region_a}}/{{region_b}}.parquet"
 
 
 FULL_GEOMETRY_TTL_S = 900
@@ -241,6 +241,14 @@ class RegionABC(ABC):
         """Redistribute file, still needs to be formatted with other variables.
 
         Needed to be defined here to pass `cls._root_dir`.
+
+        Returns
+        -------
+        str, to be formatted with `mapping`, `region_a` and `region_b`.
+        E.g.
+        ```
+        ".../data/regions/redistribute/{mapping}/{region_a}/{region_b}.parquet"
+        ```
         """
         redistribute_file = _REDISTRIBUTE_FILE.format(root_dir=cls._root_dir)
         return redistribute_file
