@@ -186,18 +186,27 @@ def _get_intersection_area(
     # geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
     #     geometry_to.rename({"geometry": "geometry_to"}), how="cross"
     # )
-    geometry_combined = (
-        geometry_from.pipe(to_geopandas)
-        .rename(columns={"geometry": "geometry_from"})
-        .merge(geometry_to.pipe(to_geopandas).rename(columns={"geometry": "geometry_to"}), how="cross")
-    )
+    # geometry_combined = (
+    #     geometry_from.pipe(to_geopandas)
+    #     .rename(columns={"geometry": "geometry_from"})
+    #     .merge(geometry_to.pipe(to_geopandas).rename(columns={"geometry": "geometry_to"}), how="cross")
+    # )
     # intersection_area = geometry_combined.select(
     #     pl.exclude("geometry_from", "geometry_to"),
     #     st.geom("geometry_from").st.intersection(st.geom("geometry_to")).st.area().alias("intersection_area"),
     # )
+    # intersection_area = (
+    #     geometry_combined.assign(intersection_area=lambda df: df["geometry_from"]
+    # .intersection(df["geometry_to"]).area)
+    #     .drop(["geometry_from", "geometry_to"], axis=1)
+    #     .pipe(pl.DataFrame)
+    # )
+
+    intersections = geometry_from.pipe(to_geopandas).overlay(geometry_to.pipe(to_geopandas), how="intersection")
+
     intersection_area = (
-        geometry_combined.assign(intersection_area=lambda df: df["geometry_from"].intersection(df["geometry_to"]).area)
-        .drop(["geometry_from", "geometry_to"], axis=1)
+        intersections.assign(intersection_area=lambda df: df["geometry"].area)
+        .drop("geometry", axis=1)
         .pipe(pl.DataFrame)
     )
 
