@@ -265,7 +265,7 @@ def _get_region_mapping_file(
     if region_from.id == region_to.id:
         regions = [region_from.id] * 2
     else:
-        regions = list({region_from.id, region_to.id})
+        regions = sorted([region_from.id, region_to.id])
 
     mapping_file = region_from.redistribute_file.format(
         mapping=mapping,
