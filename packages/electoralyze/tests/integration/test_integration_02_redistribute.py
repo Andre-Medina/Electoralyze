@@ -81,3 +81,25 @@ def test_get_region_mapping_base(region_from: RegionABC, region_to: RegionABC, m
 
         region_from._root_dir = root_dir_original
         region_to._root_dir = root_dir_original
+
+
+@pytest.mark.parametrize(
+    "sa_region, sa_subregion",
+    [
+        (region.SA2_2021, region.SA1_2021),
+        # (region.SA3_2021, region.SA2_2021),
+        # (region.SA4_2021, region.SA3_2021),
+    ],
+)
+def test_SA_regions_are_subsets(sa_region: RegionABC, sa_subregion: RegionABC):
+    """Test that all SA regions are subsets of their parent region."""
+    mapping = get_region_mapping_base(
+        region_from=sa_subregion,
+        region_to=sa_region,
+        mapping_method="intersection_area",
+        redistribute_with_full=None,
+    )
+    non_subsets = mapping.drop_nulls().filter(
+        ~pl.col(sa_subregion.id).cast(str).str.starts_with(pl.col(sa_region.id).cast(str))
+    )
+    assert len(non_subsets) == 0, "Mapping is not a subset."
