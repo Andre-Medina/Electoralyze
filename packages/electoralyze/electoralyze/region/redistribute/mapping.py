@@ -183,6 +183,9 @@ def _get_intersection_area(
     └──────────────┴─────────────┴───────────────────┘
     ```
     """
+    # FIXME: Use geopolars to find area: issue #58
+
+    # Old code from previous methods:
     # geometry_combined = geometry_from.rename({"geometry": "geometry_from"}).join(
     #     geometry_to.rename({"geometry": "geometry_to"}), how="cross"
     # )
@@ -205,6 +208,7 @@ def _get_intersection_area(
     intersections = geometry_from.pipe(to_geopandas).overlay(geometry_to.pipe(to_geopandas), how="intersection")
 
     intersection_area = (
+        # FIXME: use non geographic CRS, issue #55
         intersections.assign(intersection_area=lambda df: df["geometry"].area)
         .drop("geometry", axis=1)
         .pipe(pl.DataFrame)
