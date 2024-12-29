@@ -330,7 +330,13 @@ def _validate(
     for data_column in data_columns:
         from_total = data_by_from[data_column].sum()
         to_total = data_by_to[data_column].sum()
-        ratio = to_total / from_total
+        if from_total != 0:
+            ratio = to_total / from_total
+        elif to_total != 0:
+            ratio = to_total + 1  # Attempt to use absolute diff instead of ratio diff.
+            warning(f"Found zero in data for column: {data_column!r}. From: {from_total!r} -> To: {to_total!r}")
+        else:
+            ratio = 1
         if (ratio > 1 + ratio_tolerance) or (ratio < 1 - ratio_tolerance):
             bad_data_transformations.append(
                 f"Miss match in data for column: {data_column!r}. From: {from_total!r} -> To: {to_total!r}"

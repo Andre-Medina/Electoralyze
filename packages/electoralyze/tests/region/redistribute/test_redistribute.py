@@ -7,7 +7,7 @@ from electoralyze.common.testing.region_fixture import (
     THREE_TRIANGLES_REGION_ID,
     RegionMocked,
 )
-from electoralyze.region.redistribute.redistribute import redistribute
+from electoralyze.region.redistribute.redistribute import _validate, redistribute
 from polars import testing  # noqa: F401
 from polars.exceptions import ColumnNotFoundError
 
@@ -479,4 +479,119 @@ def test_redistribute_error_conditions(
                 region_via=region.from_id(region_ids["region_id_via"]) if "region_id_via" in region_ids else None,
                 region_to=region.from_id(region_ids["region_id_to"]),
                 **redistribute_kwargs,
+            )
+
+
+@pytest.mark.parametrize(
+    "_name, test_case",
+    [
+        (
+            "Perfectly matching data, ",
+            dict(
+                data_by_from=pl.DataFrame({"value1": [100, 200, 300], "value2": [50, 50, 50]}),
+                data_by_to=pl.DataFrame({"value1": [100, 200, 300], "value2": [50, 50, 50]}),
+                data_columns=["value1", "value2"],
+                errors="raise",
+                ratio_tolerance=0.01,
+                expected_outcome=None,
+            ),
+        ),
+        (
+            "Data within tolerance, ",
+            dict(
+                data_by_from=pl.DataFrame({"value": [100, 200, 300]}),
+                data_by_to=pl.DataFrame({"value": [101, 201, 299]}),
+                data_columns=["value"],
+                errors="raise",
+                ratio_tolerance=0.01,
+                expected_outcome=None,
+            ),
+        ),
+        (
+            "Data exceeds tolerance - raise error, ",
+            dict(
+                data_by_from=pl.DataFrame({"value": [100, 200, 300]}),
+                data_by_to=pl.DataFrame({"value": [110, 220, 330]}),
+                data_columns=["value"],
+                errors="raise",
+                ratio_tolerance=0.01,
+                expected_outcome=ValueError,
+            ),
+        ),
+        (
+            "Data exceeds tolerance - warning, ",
+            dict(
+                data_by_from=pl.DataFrame({"value": [100, 200, 300]}),
+                data_by_to=pl.DataFrame({"value": [110, 220, 330]}),
+                data_columns=["value"],
+                errors="warning",
+                ratio_tolerance=0.01,
+                expected_outcome=None,
+            ),
+        ),
+        (
+            "Multiple columns - mixed results, ",
+            dict(
+                data_by_from=pl.DataFrame(dict(good_value=[100, 200, 300], bad_value=[100, 200, 300])),
+                data_by_to=pl.DataFrame(dict(good_value=[101, 201, 299], bad_value=[110, 220, 330])),
+                data_columns=["good_value", "bad_value"],
+                errors="raise",
+                ratio_tolerance=0.01,
+                expected_outcome=ValueError,
+            ),
+        ),
+        (
+            "Zero values, ",
+            dict(
+                data_by_from=pl.DataFrame({"value": [0, 0, 0]}),
+                data_by_to=pl.DataFrame({"value": [0, 0, 0]}),
+                data_columns=["value"],
+                errors="raise",
+                ratio_tolerance=0.01,
+                expected_outcome=None,
+            ),
+        ),
+        (
+            "Custom tolerance, ",
+            dict(
+                data_by_from=pl.DataFrame({"value": [100, 200, 300]}),
+                data_by_to=pl.DataFrame({"value": [104, 208, 312]}),
+                data_columns=["value"],
+                errors="raise",
+                ratio_tolerance=0.05,
+                expected_outcome=None,
+            ),
+        ),
+    ],
+)
+def test_redistribute_validate(_name: str, test_case: dict):
+    """
+    Parameterized test for the validate function covering multiple scenarios.
+
+    Args:
+        _name: Description of the test case
+        test_case: Dictionary containing:
+            data_by_from: Input DataFrame
+            data_by_to: Output DataFrame
+            data_columns: List of columns to validate
+            errors: Error handling mode ('raise' or 'warning')
+            ratio_tolerance: Tolerance threshold for differences
+            expected_outcome: Expected test outcome (None, raises, or warns)
+    """
+    if test_case["expected_outcome"] is None:
+        _validate(
+            data_by_from=test_case["data_by_from"],
+            data_by_to=test_case["data_by_to"],
+            data_columns=test_case["data_columns"],
+            errors=test_case["errors"],
+            ratio_tolerance=test_case["ratio_tolerance"],
+        )
+    else:
+        with pytest.raises(test_case["expected_outcome"]):
+            _validate(
+                data_by_from=test_case["data_by_from"],
+                data_by_to=test_case["data_by_to"],
+                data_columns=test_case["data_columns"],
+                errors=test_case["errors"],
+                ratio_tolerance=test_case["ratio_tolerance"],
             )
