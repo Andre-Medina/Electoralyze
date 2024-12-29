@@ -222,7 +222,26 @@ def _get_remaining_area(
     geometry: st.GeoDataFrame,
     intersection_area: pl.DataFrame,
 ) -> pl.DataFrame:
-    """Find remaining area which hasnt been assigned to another region."""
+    """Find remaining area which hasn't been assigned to another region.
+
+    Returns
+    -------
+    pl.DataFrame, e.g.
+    ```python
+    shape: (4, 3)
+    ┌──────────┬──────────┬───────────────────┐
+    │ quadrant ┆ triangle ┆ intersection_area │
+    │ ---      ┆ ---      ┆ ---               │
+    │ str      ┆ str      ┆ f64               │
+    ╞══════════╪══════════╪═══════════════════╡
+    │ null     ┆ A        ┆ 2.0               │
+    │ O        ┆ null     ┆ 1.0               │
+    │ N        ┆ null     ┆ 1.0               │
+    │ P        ┆ null     ┆ 1.0               │
+    │ M        ┆ null     ┆ 1.0               │
+    └──────────┴──────────┴───────────────────┘
+    ```
+    """
     alt_region_id = list(set(intersection_area.columns) - {region_id, "intersection_area"})[0]
 
     intersected_area = intersection_area.group_by(region_id).agg(
@@ -265,7 +284,15 @@ def _get_region_mapping_file(
     *,
     mapping: MAPPING_OPTIONS,
 ) -> str:
-    """Returns the path to the mapping file for the given region."""
+    """Returns the path to the mapping file for the given region.
+
+    Returns
+    -------
+    str, path to the mapping file, e.g.
+    ```python
+    ".../data/regions/redistribute/intersection_area/quadrant/triangle.parquet"
+    ```
+    """
     if region_from.id == region_to.id:
         regions = [region_from.id] * 2
     else:

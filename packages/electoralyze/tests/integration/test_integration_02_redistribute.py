@@ -86,8 +86,8 @@ def test_get_region_mapping_base(region_from: RegionABC, region_to: RegionABC, m
     "sa_region, sa_subregion",
     [
         (region.SA2_2021, region.SA1_2021),
-        # (region.SA3_2021, region.SA2_2021),
-        # (region.SA4_2021, region.SA3_2021),
+        # (region.SA3_2021, region.SA2_2021), FIXME: Add more SA 2021 regions, issue #21
+        # (region.SA4_2021, region.SA3_2021), FIXME: Add more SA 2021 regions, issue #21
     ],
 )
 def test_SA_regions_are_subsets(sa_region: RegionABC, sa_subregion: RegionABC):
