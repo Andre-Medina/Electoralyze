@@ -565,19 +565,7 @@ def test_redistribute_error_conditions(
     ],
 )
 def test_redistribute_validate(_name: str, test_case: dict):
-    """
-    Parameterized test for the validate function covering multiple scenarios.
-
-    Args:
-        _name: Description of the test case
-        test_case: Dictionary containing:
-            data_by_from: Input DataFrame
-            data_by_to: Output DataFrame
-            data_columns: List of columns to validate
-            errors: Error handling mode ('raise' or 'warning')
-            ratio_tolerance: Tolerance threshold for differences
-            expected_outcome: Expected test outcome (None, raises, or warns)
-    """
+    """Test the `_validate` function in `redistribute`."""
     if test_case["expected_outcome"] is None:
         _validate(
             data_by_from=test_case["data_by_from"],
