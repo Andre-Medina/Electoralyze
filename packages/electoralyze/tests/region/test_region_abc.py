@@ -176,8 +176,7 @@ def test_region_downloads_raw(region: RegionMocked):
         assert time_initial != time_force_new, "The data should have changed."
 
         ### Reset data ###
-        TempRegion._geometry_cached.cache_clear()
-        TempRegion._metadata_cached.cache_clear()
+        TempRegion.cache_clear()
         os.remove(TempRegion.raw_geometry_file)
         assert not os.path.exists(TempRegion.raw_geometry_file), "The should be no data anymore."
 
