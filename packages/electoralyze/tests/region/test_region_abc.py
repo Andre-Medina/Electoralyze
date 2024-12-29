@@ -9,7 +9,13 @@ import pytest
 from electoralyze import region
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas
-from electoralyze.common.testing.region_fixture import RegionMocked, read_true_geometry, read_true_metadata
+from electoralyze.common.testing.region_fixture import (
+    FOUR_SQUARE_REGION_ID,
+    REGION_IDS,
+    RegionMocked,
+    read_true_geometry,
+    read_true_metadata,
+)
 from geopandas import testing as gpd_testing  # noqa: F401
 from polars import testing as pl_testing  # noqa: F401
 
@@ -57,54 +63,67 @@ def test_region_geometry_caches():
 
 def test_region_fixture_import(region: RegionMocked):
     """Test region fixture imports."""
+    # Test one manually
     gpd.testing.assert_geodataframe_equal(
-        region.RegionA.get_raw_geometry().pipe(to_geopandas),
-        read_true_geometry("region_a", raw=True).pipe(to_geopandas),
+        region.quadrant.get_raw_geometry().pipe(to_geopandas),
+        read_true_geometry(FOUR_SQUARE_REGION_ID, raw=True).pipe(to_geopandas),
     )
-    gpd.testing.assert_geodataframe_equal(
-        region.RegionB.get_raw_geometry().pipe(to_geopandas),
-        read_true_geometry("region_b", raw=True).pipe(to_geopandas),
-    )
-    pl.testing.assert_frame_equal(region.RegionA.get_raw_metadata(), read_true_metadata("region_a"))
-    pl.testing.assert_frame_equal(region.RegionB.get_raw_metadata(), read_true_metadata("region_b"))
+    pl.testing.assert_frame_equal(region.quadrant.get_raw_metadata(), read_true_metadata(FOUR_SQUARE_REGION_ID))
+
+    # Test the rest through a loop
+    for region_id in REGION_IDS:
+        gpd.testing.assert_geodataframe_equal(
+            region.from_id(region_id).get_raw_geometry().pipe(to_geopandas),
+            read_true_geometry(region_id, raw=True).pipe(to_geopandas),
+        )
+        pl.testing.assert_frame_equal(region.from_id(region_id).get_raw_metadata(), read_true_metadata(region_id))
 
 
 def test_region_fixture_process(region: RegionMocked):
     """Test region fixture processes raw data and saves it."""
-    with pytest.raises(FileNotFoundError):
-        region.RegionA.geometry  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionA.metadata  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionB.geometry  # noqa:B018
-    with pytest.raises(FileNotFoundError):
-        region.RegionB.metadata  # noqa:B018
+    region.remove_processed_files()
 
-    region.RegionA.process_raw()
-    region.RegionB.process_raw()
-
+    # Test one manually
+    with pytest.raises(FileNotFoundError):
+        region.quadrant.geometry  # noqa:B018
+    with pytest.raises(FileNotFoundError):
+        region.quadrant.metadata  # noqa:B018
+    region.quadrant.process_raw()
     gpd.testing.assert_geodataframe_equal(
-        region.RegionA.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
+        region.quadrant.geometry.pipe(to_geopandas), read_true_geometry(FOUR_SQUARE_REGION_ID).pipe(to_geopandas)
     )
-    gpd.testing.assert_geodataframe_equal(
-        region.RegionB.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
-    )
+    pl.testing.assert_frame_equal(region.quadrant.metadata, read_true_metadata(FOUR_SQUARE_REGION_ID))
 
-    pl.testing.assert_frame_equal(region.RegionA.metadata, read_true_metadata("region_a"))
-    pl.testing.assert_frame_equal(region.RegionB.metadata, read_true_metadata("region_b"))
+    # Test the rest through a loop
+    for region_id in REGION_IDS:
+        region.from_id(region_id).remove_processed_files()
+        with pytest.raises(FileNotFoundError):
+            region.from_id(region_id).geometry  # noqa:B018
+        with pytest.raises(FileNotFoundError):
+            region.from_id(region_id).metadata  # noqa:B018
+
+        region.from_id(region_id).process_raw()
+
+        gpd.testing.assert_geodataframe_equal(
+            region.from_id(region_id).geometry.pipe(to_geopandas), read_true_geometry(region_id).pipe(to_geopandas)
+        )
+        pl.testing.assert_frame_equal(region.from_id(region_id).metadata, read_true_metadata(region_id))
 
 
 def test_region_fixture_still_processed(region: RegionMocked):
     """Test region fixture keeps saved data."""
+    # Test one manually
     gpd.testing.assert_geodataframe_equal(
-        region.RegionA.geometry.pipe(to_geopandas), read_true_geometry("region_a").pipe(to_geopandas)
+        region.quadrant.geometry.pipe(to_geopandas), read_true_geometry(FOUR_SQUARE_REGION_ID).pipe(to_geopandas)
     )
-    gpd.testing.assert_geodataframe_equal(
-        region.RegionB.geometry.pipe(to_geopandas), read_true_geometry("region_b").pipe(to_geopandas)
-    )
+    pl.testing.assert_frame_equal(region.quadrant.metadata, read_true_metadata(FOUR_SQUARE_REGION_ID))
 
-    pl.testing.assert_frame_equal(region.RegionA.metadata, read_true_metadata("region_a"))
-    pl.testing.assert_frame_equal(region.RegionB.metadata, read_true_metadata("region_b"))
+    # Test the rest through a loop
+    for region_id in REGION_IDS:
+        gpd.testing.assert_geodataframe_equal(
+            region.from_id(region_id).geometry.pipe(to_geopandas), read_true_geometry(region_id).pipe(to_geopandas)
+        )
+        pl.testing.assert_frame_equal(region.from_id(region_id).metadata, read_true_metadata(region_id))
 
 
 def test_region_downloads_raw(region: RegionMocked):
@@ -157,8 +176,7 @@ def test_region_downloads_raw(region: RegionMocked):
         assert time_initial != time_force_new, "The data should have changed."
 
         ### Reset data ###
-        TempRegion._geometry_cached.cache_clear()
-        TempRegion._metadata_cached.cache_clear()
+        TempRegion.cache_clear()
         os.remove(TempRegion.raw_geometry_file)
         assert not os.path.exists(TempRegion.raw_geometry_file), "The should be no data anymore."
 

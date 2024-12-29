@@ -4,6 +4,7 @@ import polars as pl
 import polars_st as st
 from electoralyze.common.constants import ROOT_DIR
 from electoralyze.common.functools import classproperty
+from electoralyze.common.parsing import clean_string
 from electoralyze.region.region_abc import RegionABC
 
 FEDERAL_ELECTION_BOUNDARY_2021_URL = (
@@ -64,7 +65,7 @@ class Federal2022(RegionABC):
         ```
         """
         geometry_with_metadata = geometry_raw.select(
-            pl.col("Elect_div").alias(cls.id),
+            clean_string("Elect_div").alias(cls.id),
             pl.struct(
                 pl.col("Elect_div").alias(cls.name),
                 pl.col("Sortname").alias("short_name"),
