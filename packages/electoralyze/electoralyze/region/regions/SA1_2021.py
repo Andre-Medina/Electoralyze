@@ -6,9 +6,18 @@ from electoralyze.common.constants import ROOT_DIR
 from electoralyze.common.functools import classproperty
 from electoralyze.region.region_abc import RegionABC
 
+SA1_2021_RAW_FILE_URL = (
+    "https://www.abs.gov.au/statistics/standards/"
+    "australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads"
+    "/digital-boundary-files/SA1_2021_AUST_SHP_GDA2020.zip"
+)
+SA1_2021_RAW_FILE = os.path.join(ROOT_DIR, "data/raw/SA1_2021_AUST_GDA2020.zip")
+
 
 class SA1_2021(RegionABC):
     """Region for SA1_2021."""
+
+    raw_geometry_url = SA1_2021_RAW_FILE_URL
 
     @classproperty
     def id(cls) -> str:
@@ -24,7 +33,7 @@ class SA1_2021(RegionABC):
     @classproperty
     def raw_geometry_file(cls) -> str:
         """Get the path to the raw data shapefile."""
-        raw_geometry_file = os.path.join(ROOT_DIR, "data/raw/ASGA/2021/SA1/SA1_2021_AUST_GDA2020.shp")
+        raw_geometry_file = SA1_2021_RAW_FILE
         return raw_geometry_file
 
     @classmethod

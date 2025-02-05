@@ -8,14 +8,17 @@ import pyogrio
 from cachetools import LRUCache, TTLCache, cached
 
 from electoralyze.common.constants import REGION_SIMPLIFY_TOLERANCE, ROOT_DIR
+from electoralyze.common.files import create_path, download_file
 from electoralyze.common.functools import classproperty
 from electoralyze.common.geometry import to_geopandas, to_geopolars
 
-REDISTRIBUTE_FILE = os.path.join(ROOT_DIR, "data/regions/redistribute/{from}_{to}.parquet")
-GEOMETRY_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/geometry.parquet")
-METADATA_FILE = os.path.join(ROOT_DIR, "data/regions/{region}/metadata.parquet")
+GEOMETRY_FILE = "{root_dir}/data/regions/{region}/geometry.parquet"
+METADATA_FILE = "{root_dir}/data/regions/{region}/metadata.parquet"
+_REDISTRIBUTE_FILE = "{root_dir}/data/regions/redistribute/{{mapping}}/{{region_a}}/{{region_b}}.parquet"
 
-FULL_GEOMETRY_TTL_S = 300
+
+FULL_GEOMETRY_TTL_S = 900
+BASE_DOWNLOAD_TIMEOUT = 60
 
 
 class RegionABC(ABC):
@@ -103,6 +106,10 @@ class RegionABC(ABC):
     - Testing some region basics in `tests/region/test_region_abc.py: test_true_region_id_and_name`.
     """
 
+    _root_dir: str = ROOT_DIR
+    raw_geometry_url: str
+    timeout: int = BASE_DOWNLOAD_TIMEOUT
+
     @classproperty
     @abstractmethod
     def id(cls) -> str:
@@ -124,13 +131,6 @@ class RegionABC(ABC):
         """
         name_column = f"{cls.id}_name"
         return name_column
-
-    @classmethod
-    @cached(LRUCache(maxsize=32))
-    def get_ids(cls) -> set:
-        """Gets set of all ids for this region."""
-        ids = set(cls.metadata[cls.id].unique().to_list())
-        return ids
 
     #### READING #############
     @classproperty
@@ -227,20 +227,52 @@ class RegionABC(ABC):
     @classproperty
     def metadata_file(cls) -> str:
         """Get the path to the metadata file."""
-        metadata_file = METADATA_FILE.format(region=cls.id)
+        metadata_file = METADATA_FILE.format(root_dir=cls._root_dir, region=cls.id)
         return metadata_file
 
     @classproperty
     def geometry_file(cls) -> str:
         """Get the path to the processed geometry file."""
-        geometry_file = GEOMETRY_FILE.format(region=cls.id)
+        geometry_file = GEOMETRY_FILE.format(root_dir=cls._root_dir, region=cls.id)
         return geometry_file
+
+    @classproperty
+    def redistribute_file(cls) -> str:
+        """Redistribute file, still needs to be formatted with other variables.
+
+        Needed to be defined here to pass `cls._root_dir`.
+
+        Returns
+        -------
+        str, to be formatted with `mapping`, `region_a` and `region_b`.
+        E.g.
+        ```
+        ".../data/regions/redistribute/{mapping}/{region_a}/{region_b}.parquet"
+        ```
+        """
+        redistribute_file = _REDISTRIBUTE_FILE.format(root_dir=cls._root_dir)
+        return redistribute_file
 
     #### PROCESSING #########
 
     @classmethod
-    def process_raw(cls):
-        """Extract, transform and save the raw data to create data for `cls.geometry` and `cls.metadata`."""
+    def process_raw(cls, *, force_new: bool = False, download: bool = True) -> None:
+        """Extract, transform and save the raw data to create data for `cls.geometry` and `cls.metadata`.
+
+        Parameters
+        ----------
+        force_new (bool, optional): If True, will force a new download of the raw data. Defaults to False.
+        download (bool, optional): If True, will download the raw data. Defaults to True.
+
+        Returns
+        -------
+        None, updates `cls.geometry` and `cls.metadata`
+
+        """
+        if download or force_new:
+            print("Downloading raw...")
+            cls.download_data(force_new=force_new)
+
         print("Loading raw...")
         geometry_raw = cls.get_raw_geometry()
         metadata_raw = cls.get_raw_metadata()
@@ -254,13 +286,20 @@ class RegionABC(ABC):
 
         print("Saving...")
 
-        os.makedirs(cls.geometry_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
+        create_path(cls.geometry_file)
         geometry.to_parquet(cls.geometry_file)
 
-        os.makedirs(cls.metadata_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
+        create_path(cls.metadata_file)
         metadata.write_parquet(cls.metadata_file)
 
         print("Done!")
+
+    @classmethod
+    def download_data(cls, *, force_new: bool = False):
+        """Download the raw data from the source."""
+        if (not force_new) and (os.path.exists(cls.raw_geometry_file)):
+            return
+        download_file(cls.raw_geometry_url, cls.raw_geometry_file, timeout=cls.timeout)
 
     @classmethod
     def get_raw_geometry(cls) -> st.GeoDataFrame:
@@ -338,6 +377,34 @@ class RegionABC(ABC):
         -------
         st.GeoDataFrame: In any format with any number columns. Should be accepted by `.transform`.
         """
+        if not os.path.exists(cls.raw_geometry_file):
+            raise FileNotFoundError(f"File not found: {cls.raw_geometry_file!r}")
+
         geometry_raw_gpd = pyogrio.read_dataframe(cls.raw_geometry_file)
         geometry_raw_st = to_geopolars(geometry_raw_gpd)
         return geometry_raw_st
+
+    ### UTILS ########
+
+    @classmethod
+    @cached(LRUCache(maxsize=32))
+    def get_ids(cls) -> set:
+        """Gets set of all ids for this region."""
+        ids = set(cls.metadata[cls.id].unique().to_list())
+        return ids
+
+    @classmethod
+    def remove_processed_files(cls):
+        """Remove processed files."""
+        if os.path.isfile(cls.geometry_file):
+            os.remove(cls.geometry_file)
+        if os.path.isfile(cls.metadata_file):
+            os.remove(cls.metadata_file)
+        cls.cache_clear()
+
+    @classmethod
+    def cache_clear(cls):
+        """Clears the cache of class methods where data is cached."""
+        cls._geometry_cached.cache_clear()
+        cls._metadata_cached.cache_clear()
+        cls._get_geometry_with_metadata.cache_clear()
