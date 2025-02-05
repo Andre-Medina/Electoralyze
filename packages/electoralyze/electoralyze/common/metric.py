@@ -1,10 +1,12 @@
-import os
+import logging
 from functools import cached_property
 from typing import Callable, Literal
 
 import polars as pl
+from electoralyze.common.files import create_path
 from electoralyze.region.region_abc import RegionABC
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
+from typing_extensions import Self
 
 METRIC_DATA_TYPES = Literal["categorical", "ordinal", "numeric", "single"]
 
@@ -32,23 +34,31 @@ class MetricRegion(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @model_validator(mode="after")
+    def validate(self) -> Self:
+        """Validate that either `process_raw` or `redistribute_from` is specified."""
+        if (self.process_raw is None) and (self.redistribute_from is None):
+            raise ValueError("Either `process_raw` or `redistribute_from` must be specified.")
+        return self
+
 
 class Metric(BaseModel):
     """Hold data in several regions for a single metric and unify the API.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     allowed_regions: list[MetricRegion], list of `MetricRegion` to specify which regions are allowed.
-    name: str
-    name_prefix: str | None = None
-    data_type: METRIC_DATA_TYPES
-    file: str
-    category_column: str
-    data_column: str
-    schema: Callable[type(RegionABC), pl.Schema]
+    name: str, name of the metric.
+    name_prefix: str | None = None, optional prefix for the name, can be accessed by `full_name`.
+    data_type: METRIC_DATA_TYPES, type of the data, one of `categorical`, `ordinal`, `numeric`, `single`.
+    processed_path: str, path to the processed data, must be formattable with `{region}`.
+    category_column: str, column name for the category.
+    data_column: str, column to use for the metric.
+    schema_getter: Callable[type(RegionABC), pl.Schema], function to get the schema for a given region.
 
     Example
     -------
+    Basic usage to create a single metric:
     ```python
     >>> from electoralyze.common.metric import Metric, MetricRegion
     >>> from electoralyze import region
@@ -58,27 +68,59 @@ class Metric(BaseModel):
     ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
     ...     ],
     ...     name="my_metric",
-    ...     file="/home/user/.../data/my_metric/{region}.parquet",
+    ...     processed_path="/home/user/.../data/my_metric/{region}.parquet",
     ...     data_type="ordinal",
     ...     category_column="year",
     ...     data_column="population",
-    ...     schema = lambda region: pl.Schema({
+    ...     schema_getter = lambda region: pl.Schema({
     ...         region.id: pl.String,
     ...         "year": pl.Int32,
     ...         "population": pl.Float32,
     ...     }),
     ... )
     ```
+
+    Creating a subclass used for several similar metrics:
+    ```python
+    >>> from electoralyze.common.metric import Metric, MetricRegion
+    >>> from electoralyze import region
+    >>> class Census2021(Metric):
+    ...     name_prefix: str = "census_2021"
+    ...     processed_path: None = None
+    ...     data_type: METRIC_DATA_TYPES = "numeric"
+    ...     schema_getter = lambda region: pl.Schema({
+    ...         region.id: pl.String,
+    ...         "year": pl.Int32,
+    ...         "population": pl.Float32,
+    ...     }),
+    ...
+    ...
+    ...     def get_processed_path(self) -> str:
+    ...         processed_path = f"/home/user/.../data/{self.name_prefix}/{{region_id}}.parquet"
+    ...         return processed_path
+    ...
+    >>> population = Census2021(
+    ...     name="population",
+    ...     allowed_regions=[
+    ...         MetricRegion(region.SA1_2021, process_raw = process_raw_population),
+    ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
+    ...     ],
+    >>> income = Census2021(
+    ...     name="population",
+    ...     allowed_regions=[
+    ...         MetricRegion(region.SA1_2021, process_raw = process_raw_income),
+    ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
+    ...     ],
     """
 
     allowed_regions: list[MetricRegion]
     name: str
     name_prefix: str | None = None
     data_type: METRIC_DATA_TYPES
-    file: str
+    processed_path: str
     category_column: str
     data_column: str
-    schema: Callable[[type[RegionABC]], pl.Schema]
+    schema_getter: Callable[[type[RegionABC]], pl.Schema]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -97,8 +139,8 @@ class Metric(BaseModel):
 
         return allowed_regions
 
-    def get_file(self) -> str:
-        """Return the path to the clean data, just needs to be formatted with `region`.
+    def get_processed_path(self) -> str:
+        """Return the path to the clean data, just needs to be formatted with `region_id`.
 
         Can be overwritten by child classes to specify different formatting method.
 
@@ -106,26 +148,26 @@ class Metric(BaseModel):
         -------
         With this function as is:
         ```python
-        >>> my_metric = Metric(file = "/home/user/.../data/my_metric/{region}.parquet", ...)
-        >>> my_metric.get_file()
-        /home/user/.../data/my_metric/{region}.parquet
+        >>> my_metric = Metric(processed_path = "/home/user/.../data/my_metric/{region_id}.parquet", ...)
+        >>> my_metric.get_processed_path()
+        /home/user/.../data/my_metric/{region_id}.parquet
         ```
 
         Overwriting this function to use other attributes:
         ```python
         >>> class SubMetric(Metric):
         >>>    ...
-        >>>    def get_file(self) -> str:
-        >>>        file = f"/home/user/.../data/{self.name}/{{region}}.parquet"
-        >>>        return file
+        >>>    def get_processed_path(self) -> str:
+        >>>        processed_path = f"/home/user/.../data/{self.name}/{{region_id}}.parquet"
+        >>>        return processed_path
         >>>
         >>> my_metric = SubMetric(name="test_new_name", ...)
-        >>> my_metric.get_file()
-        /home/user/.../data/test_new_name/{region}.parquet
+        >>> my_metric.get_processed_path()
+        /home/user/.../data/test_new_name/{region_id}.parquet
         ```
         """
-        file = self.file
-        return file
+        processed_path = self.processed_path
+        return processed_path
 
     #### Get and set data #####
 
@@ -133,16 +175,17 @@ class Metric(BaseModel):
         """Process raw data for all allowed regions."""
         for metric_region in self.allowed_regions:
             if metric_region.process_raw is not None:
+                logging.info(f"Processing raw data for {metric_region.region.id!r}")
                 kwargs = metric_region.process_raw_kwargs or {}
                 processed_data = metric_region.process_raw(
                     parent_metric=self,
                     **kwargs,
                 )
 
-                processed_data_file = self.get_file().format(region=metric_region.region.id)
-                os.makedirs(processed_data_file.rsplit("/", maxsplit=1)[0], exist_ok=True)
+                processed_file = self.get_processed_path().format(region_id=metric_region.region.id)
+                create_path(processed_file)
 
-                processed_data.write_parquet(processed_data_file)
+                processed_data.write_parquet(processed_file)
 
                 # Validate data is available
                 self.by(region=metric_region.region)
@@ -174,18 +217,18 @@ class Metric(BaseModel):
         else:
             metric_data = self._get_stored_data(region)
 
-        if metric_data.schema != self.schema(region):
+        if metric_data.schema != self.schema_getter(region):
             raise ValueError(
                 f"Schema mismatch for metric: {self.full_name!r}. "
-                f"Expected: {self.schema(region)}, Got: {metric_data.schema}"
+                f"Expected: {self.schema_getter(region)}, Got: {metric_data.schema}"
             )
 
         return metric_data
 
     def _get_stored_data(self, region: RegionABC) -> pl.DataFrame:
-        """Get data stored from an existing file."""
-        file = self.get_file().format(region=region.id)
-        metric_data = pl.read_parquet(file)
+        """Get data stored from an existing processed_file."""
+        processed_file = self.get_processed_path().format(region=region.id)
+        metric_data = pl.read_parquet(processed_file)
         return metric_data
 
     def _get_redistributed_data(self, region: RegionABC) -> pl.DataFrame:
