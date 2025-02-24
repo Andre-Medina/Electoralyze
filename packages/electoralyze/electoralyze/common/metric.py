@@ -53,7 +53,7 @@ class Metric(BaseModel):
     data_type: METRIC_DATA_TYPES, type of the data, one of `categorical`, `ordinal`, `numeric`, `single`.
     processed_path: str, path to the processed data, must be formattable with `{region}`.
     category_column: str, column name for the category.
-    data_column: str, column to use for the metric.
+    value_column: str, column to use for the metric.
     schema_getter: Callable[type(RegionABC), pl.Schema], function to get the schema for a given region.
 
     Example
@@ -71,7 +71,7 @@ class Metric(BaseModel):
     ...     processed_path="/home/user/.../data/my_metric/{region}.parquet",
     ...     data_type="ordinal",
     ...     category_column="year",
-    ...     data_column="population",
+    ...     value_column="population",
     ...     schema_getter = lambda region: pl.Schema({
     ...         region.id: pl.String,
     ...         "year": pl.Int32,
@@ -119,10 +119,57 @@ class Metric(BaseModel):
     data_type: METRIC_DATA_TYPES
     processed_path: str
     category_column: str
-    data_column: str
+    value_column: str
     schema_getter: Callable[[type[RegionABC]], pl.Schema]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @model_validator(mode="after")
+    def validate(self) -> Self:
+        """Validate basic info about the Metric."""
+
+        class _FakeRegion:
+            id = "fake_region_id"
+
+        fake_schema: pl.Schema = self.schema_getter(_FakeRegion)
+        schema_columns = set(fake_schema.keys())
+        if schema_columns != {_FakeRegion.id, self.category_column, self.value_column}:
+            raise ValueError("Schema must have columns `region_id`, `category_column`, and `value_column`.")
+
+        if len(self.allowed_regions) == 0:
+            raise ValueError("At least one `MetricRegion` must be specified.")
+
+        if not self.processed_path.endswith(".parquet"):
+            raise ValueError("Path must be a parquet file.")
+
+        if "{region_id}" not in self.processed_path:
+            raise ValueError("Path must contain {region_id} in its path.")
+
+        self._validate_allowed_regions()
+
+        return self
+
+    def _validate_allowed_regions(self):
+        """Validate the `allowed_regions` make sense."""
+        regions_with_processors: list[str] = []
+        regions_to_redistribute: dict[str, str] = {}
+        errors = []
+
+        for metric_region in self.allowed_regions:
+            if metric_region.redistribute_from is not None:
+                regions_to_redistribute[metric_region.region.id] = metric_region.redistribute_from.id
+            if metric_region.process_raw is not None:
+                regions_with_processors.append(metric_region.region.id)
+
+        if len(regions_with_processors) == 0:
+            errors.append("There are no regions with `process_raw` functions")
+
+        for region_id, redistribute_from_id in regions_to_redistribute.items():
+            if redistribute_from_id not in regions_with_processors:
+                errors.append(f"Redistribution from region {region_id} must have a `process_raw` function")
+
+        if len(errors) > 0:
+            raise ValueError("\n".join(errors))
 
     @cached_property
     def full_name(self):
@@ -227,7 +274,7 @@ class Metric(BaseModel):
 
     def _get_stored_data(self, region: RegionABC) -> pl.DataFrame:
         """Get data stored from an existing processed_file."""
-        processed_file = self.get_processed_path().format(region=region.id)
+        processed_file = self.get_processed_path().format(region_id=region.id)
         metric_data = pl.read_parquet(processed_file)
         return metric_data
 
