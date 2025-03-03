@@ -8,6 +8,7 @@ from electoralyze.common.testing.region_fixture import (
     THREE_TRIANGLES_REGION_ID,
     RegionMocked,
 )
+from electoralyze.region.region_abc import RegionABC
 
 
 def test_metric_region_create(region: RegionMocked):
@@ -44,7 +45,7 @@ def test_metric_basic_create(region: RegionMocked):
             schema_getter=lambda region: pl.Schema({region.id: pl.String, "year": pl.Int64, "population": pl.Float64}),
             processed_path=f"{temp_dir}/data/my_metric/{{region_id}}.parquet",
             allowed_regions=[
-                MetricRegion(region=region.rectangle, process_raw=_process_raw_population),
+                MetricRegion(region=region.rectangle, process_raw=_process_raw_test),
                 MetricRegion(region=region.triangle, redistribute_from=region.rectangle),
             ],
         )
@@ -112,7 +113,7 @@ def test_bad_metric_creations(_name: str, input_override: dict, error: type[Exce
         value_column="population",
         schema_getter=lambda region: pl.Schema({region.id: pl.String, "year": pl.Int64, "population": pl.Float64}),
         processed_path="not_a_folder/data/my_metric/{region_id}.parquet",
-        allowed_regions=[MetricRegion(region=region.rectangle, process_raw=_process_raw_population)],
+        allowed_regions=[MetricRegion(region=region.rectangle, process_raw=_process_raw_test)],
     )
     # Bad data type
     with pytest.raises(error):
@@ -130,27 +131,99 @@ def test_bad_metric_creations_bad_region_getter(region: RegionMocked):
             schema_getter=lambda region: pl.Schema({region.id: pl.String, "year": pl.Int64, "population": pl.Float64}),
             processed_path="not_a_folder/data/my_metric/{region_id}.parquet",
             allowed_regions=[
-                MetricRegion(region=region.quadrant, process_raw=_process_raw_population),
+                MetricRegion(region=region.quadrant, process_raw=_process_raw_test),
                 MetricRegion(region=region.rectangle, redistribute_from=region.triangle),
             ],
         )
 
 
-def test_subclassing_metric():
+def test_subclassing_metric(region: RegionMocked):
     """Test creating a sub metric works as intended."""
-    # Create a submetric
-    # Create several metrics
-    # Check path is formatted correctly
-    pass
+    SUB = "sub"
+    POPULATION_NAME = "population"
+    AGE_NAME = "population"
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        def schema_getter(region_id, category_column, value_column):
+            """Get the schema."""
+
+        class SubMetric(Metric):
+            name_suffix: str = SUB
+            processed_path: None = None
+            category_column: str = "year"
+            data_type: str = "numeric"
+            schema_getter: None = None
+
+            def get_processed_path(self) -> str:
+                file = f"{temp_dir}/data/{{sub_metric}}/{{metric}}/{{region_id}}.parquet".format(
+                    sub_metric=self.name_suffix,
+                    metric=self.name,
+                    region_id="{region_id}",
+                )
+                return file
+
+            def _get_schema(self, region: RegionABC) -> pl.Schema:
+                """Overrideable function to change kwargs in schema getter."""
+                schema = pl.Schema(
+                    {region.id: pl.String, self.category_column: pl.Int64, self.value_column: pl.Float64}
+                )
+                return schema
+
+        population_metric = SubMetric(
+            name=POPULATION_NAME,
+            value_column=POPULATION_NAME,
+            allowed_regions=[
+                MetricRegion(region=region.rectangle, process_raw=_process_raw_test),
+                MetricRegion(region=region.triangle, redistribute_from=region.rectangle),
+            ],
+        )
+        age_metric = SubMetric(
+            name=AGE_NAME,
+            value_column=AGE_NAME,
+            allowed_regions=[
+                MetricRegion(region=region.square, process_raw=_process_raw_test),
+                MetricRegion(region=region.l_and_r, redistribute_from=region.square),
+            ],
+        )
+
+        with pytest.raises(FileNotFoundError):
+            population_metric.by(region.rectangle)
+        population_metric.process_raw()
+        population_metric.by(region.rectangle)
+
+        with pytest.raises(FileNotFoundError):
+            age_metric.by(region.square)
+        age_metric.process_raw()
+        age_metric.by(region.square)
+
+        with pytest.raises(NotImplementedError):
+            population_metric.by(region.triangle)
+        with pytest.raises(NotImplementedError):
+            age_metric.by(region.l_and_r)
+
+        with pytest.raises(KeyError):
+            population_metric.by(region.square)
+        with pytest.raises(KeyError):
+            age_metric.by(region.rectangle)
+
+        processed_path = population_metric.get_processed_path().format(region_id=region.triangle.id)
+        assert (
+            processed_path == f"{temp_dir}/data/{SUB}/{POPULATION_NAME}/{region.triangle.id}.parquet"
+        ), "bad path formatting."
+        processed_path = age_metric.get_processed_path().format(region_id=region.triangle.id)
+        assert (
+            processed_path == f"{temp_dir}/data/{SUB}/{AGE_NAME}/{region.triangle.id}.parquet"
+        ), "bad path formatting."
 
 
-def _process_raw_population(**_kwargs) -> pl.DataFrame:
-    """Fake `process_raw` function for the population."""
+def _process_raw_test(parent_metric: Metric, region: RegionABC, **_kwargs) -> pl.DataFrame:
+    """Fake `process_raw` function for any metric or region."""
     data = pl.DataFrame(
         {
-            THREE_RECTANGLE_REGION_ID: ["A", "A", "B", "B"],
-            "year": [2020, 2021] * 2,
-            "population": [10.0, 20.0, 30.0, 40.0],
+            region.id: ["A", "A", "B", "B"],
+            parent_metric.category_column: [2020, 2021] * 2,
+            parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
         }
     )
 

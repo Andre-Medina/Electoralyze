@@ -131,7 +131,7 @@ class Metric(BaseModel):
         class _FakeRegion:
             id = "fake_region_id"
 
-        fake_schema: pl.Schema = self.schema_getter(_FakeRegion)
+        fake_schema: pl.Schema = self._get_schema(_FakeRegion)
         schema_columns = set(fake_schema.keys())
         if schema_columns != {_FakeRegion.id, self.category_column, self.value_column}:
             raise ValueError("Schema must have columns `region_id`, `category_column`, and `value_column`.")
@@ -139,11 +139,12 @@ class Metric(BaseModel):
         if len(self.allowed_regions) == 0:
             raise ValueError("At least one `MetricRegion` must be specified.")
 
-        if not self.processed_path.endswith(".parquet"):
-            raise ValueError("Path must be a parquet file.")
+        if self.processed_path is not None:
+            if not self.processed_path.endswith(".parquet"):
+                raise ValueError("Path must be a parquet file.")
 
-        if "{region_id}" not in self.processed_path:
-            raise ValueError("Path must contain {region_id} in its path.")
+            if "{region_id}" not in self.processed_path:
+                raise ValueError("Path must contain {region_id} in its path.")
 
         self._validate_allowed_regions()
 
@@ -226,6 +227,7 @@ class Metric(BaseModel):
                 kwargs = metric_region.process_raw_kwargs or {}
                 processed_data = metric_region.process_raw(
                     parent_metric=self,
+                    region=metric_region.region,
                     **kwargs,
                 )
 
@@ -264,13 +266,17 @@ class Metric(BaseModel):
         else:
             metric_data = self._get_stored_data(region)
 
-        if metric_data.schema != self.schema_getter(region):
+        if metric_data.schema != self._get_schema(region):
             raise ValueError(
                 f"Schema mismatch for metric: {self.full_name!r}. "
-                f"Expected: {self.schema_getter(region)}, Got: {metric_data.schema}"
+                f"Expected: {self._get_schema(region)}, Got: {metric_data.schema}"
             )
 
         return metric_data
+
+    def _get_schema(self, region: RegionABC) -> pl.Schema:
+        """Overrideable function to change kwargs in schema getter."""
+        return self.schema_getter(region)
 
     def _get_stored_data(self, region: RegionABC) -> pl.DataFrame:
         """Get data stored from an existing processed_file."""
