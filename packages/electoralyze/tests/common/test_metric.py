@@ -10,11 +10,56 @@ from electoralyze.common.testing.region_fixture import (
 )
 from electoralyze.region.region_abc import RegionABC
 
+## FIXTURES AND FUNCTIONS
+
+
+def _process_raw_test(parent_metric: Metric, region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
+    """Fake `process_raw` function for any metric or region."""
+    data = pl.DataFrame(
+        {
+            region.id: ["A", "A", "B", "B"],
+            parent_metric.category_column: [2020, 2021] * 2,
+            parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+    return data
+
+
+def _process_raw_test_extra_kwargs(
+    parent_metric: Metric, region: RegionABC, extra: str, **_kwargs: dict
+) -> pl.DataFrame:
+    """Fake `process_raw` function for any metric or region."""
+    data = pl.DataFrame(
+        {
+            region.id: ["A", "A", "B", "B"],
+            parent_metric.category_column: [2020, 2021] * 2,
+            parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+    return data
+
+
+def _process_raw_no_return(parent_metric: Metric, region: RegionABC, **_kwargs: dict) -> None:
+    pass
+
+
+def _process_raw_no_parent(region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
+    pass
+
+
+def _process_raw_no_parent_type(parent_metric, region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
+    pass
+
+
+### METRIC REGION TESTS
+
 
 def test_metric_region_create(region: RegionMocked):
     """Test creating a metric region works as intended."""
 
-    def process_raw_population(**_kwargs) -> pl.DataFrame:
+    def process_raw_population(parent_metric: Metric, region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
         data = pl.DataFrame(
             {"SA1_2021": ["A", "A", "B", "B"], "year": [2020, 2021] * 2, "population": [10.0, 20.0, 30.0, 40.0]}
         )
@@ -22,16 +67,90 @@ def test_metric_region_create(region: RegionMocked):
 
     MetricRegion(region=region.rectangle, process_raw=process_raw_population)
     MetricRegion(region=region.triangle, redistribute_from=region.rectangle)
-    MetricRegion(region=region.triangle, redistribute_from=region.rectangle, redistribute_kwargs={"a": 1})
+    MetricRegion(
+        region=region.triangle, redistribute_from=region.rectangle, redistribute_kwargs={"region_via": region.quadrant}
+    )
 
     with pytest.raises(ValueError):
         MetricRegion(region=region.rectangle)
     with pytest.raises(ValueError):
-        MetricRegion(region=region.rectangle, redistribute_kwargs={"a": 1})
+        MetricRegion(region=region.rectangle, redistribute_kwargs={"region_via": region.quadrant})
 
     # Bad process_raw function
     # Bad process_raw function kwarg list (cant accept `parent_metric`)
     # Bad redistribute from
+
+
+@pytest.mark.parametrize(
+    "_name, inputs, error",
+    [
+        (
+            "Primary region: typical working, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "process_raw": _process_raw_test,
+            },
+            None,
+        ),
+        (
+            "Primary region: extra working, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "process_raw": _process_raw_test_extra_kwargs,
+                "process_raw_kwargs": {"extra": "helloworld"},
+            },
+            None,
+        ),
+        (
+            "Primary region: missing extra, ",
+            {"region": THREE_TRIANGLES_REGION_ID, "process_raw": _process_raw_test_extra_kwargs},
+            ValueError,
+        ),
+        (
+            "Primary region: unexpected extras, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "process_raw": _process_raw_test,
+                "process_raw_kwargs": {"extra": "helloworld"},
+            },
+            ValueError,
+        ),
+        (
+            "Primary region: bad type kwargs, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "process_raw": _process_raw_test_extra_kwargs,
+                "process_raw_kwargs": {"extra": 123},
+            },
+            ValueError,
+        ),
+        (
+            "Primary region: no return type, ",
+            {"region": THREE_TRIANGLES_REGION_ID, "process_raw": _process_raw_no_return},
+            ValueError,
+        ),
+        (
+            "Primary region: no parent kwarg, ",
+            {"region": THREE_TRIANGLES_REGION_ID, "process_raw": _process_raw_no_parent},
+            ValueError,
+        ),
+        (
+            "Primary region: no parent type, ",
+            {"region": THREE_TRIANGLES_REGION_ID, "process_raw": _process_raw_no_parent_type},
+            ValueError,
+        ),
+    ],
+)
+def test_bad_metric_region_create(_name: str, inputs: dict, error: type[Exception], region: RegionMocked):
+    """Test creating a bad metric region raises an error where needed."""
+    inputs["region"] = region.from_id(inputs["region"])
+    inputs["redistribute_from"] = region.from_id(inputs.get("redistribute_from"))
+
+    if error is not None:
+        with pytest.raises(error):
+            MetricRegion(**inputs)
+    else:
+        MetricRegion(**inputs)
 
 
 def test_metric_basic_create(region: RegionMocked):
@@ -70,6 +189,7 @@ def test_metric_basic_create(region: RegionMocked):
 @pytest.mark.parametrize(
     "_name, input_override, error",
     [
+        ("Bad data type value, ", {}, None),
         ("Bad data type value, ", {"data_type": "BAD CATEGORY"}, ValueError),
         ("Bad category column type, ", {"category_column": 123}, ValueError),
         ("Bad value column type, ", {"value_column": 123}, ValueError),
@@ -115,8 +235,10 @@ def test_bad_metric_creations(_name: str, input_override: dict, error: type[Exce
         processed_path="not_a_folder/data/my_metric/{region_id}.parquet",
         allowed_regions=[MetricRegion(region=region.rectangle, process_raw=_process_raw_test)],
     )
-    # Bad data type
-    with pytest.raises(error):
+    if error is not None:
+        with pytest.raises(error):
+            Metric(**(good_data | input_override))
+    else:
         Metric(**(good_data | input_override))
 
 
@@ -215,16 +337,3 @@ def test_subclassing_metric(region: RegionMocked):
         assert (
             processed_path == f"{temp_dir}/data/{SUB}/{AGE_NAME}/{region.triangle.id}.parquet"
         ), "bad path formatting."
-
-
-def _process_raw_test(parent_metric: Metric, region: RegionABC, **_kwargs) -> pl.DataFrame:
-    """Fake `process_raw` function for any metric or region."""
-    data = pl.DataFrame(
-        {
-            region.id: ["A", "A", "B", "B"],
-            parent_metric.category_column: [2020, 2021] * 2,
-            parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
-        }
-    )
-
-    return data

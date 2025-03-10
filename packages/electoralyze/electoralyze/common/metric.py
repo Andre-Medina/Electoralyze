@@ -1,9 +1,10 @@
 import logging
 from functools import cached_property
-from typing import Callable, Literal
+from typing import Callable, Literal, get_type_hints
 
 import polars as pl
 from electoralyze.common.files import create_path
+from electoralyze.region.redistribute import redistribute
 from electoralyze.region.region_abc import RegionABC
 from pydantic import BaseModel, ConfigDict, model_validator
 from typing_extensions import Self
@@ -31,14 +32,76 @@ class MetricRegion(BaseModel):
     redistribute_kwargs: dict | None = None
     process_raw: Callable[[], pl.DataFrame] | None = None
     process_raw_kwargs: dict | None = None
+    _is_primary: bool = False
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
     def validate(self) -> Self:
-        """Validate that either `process_raw` or `redistribute_from` is specified."""
-        if (self.process_raw is None) and (self.redistribute_from is None):
-            raise ValueError("Either `process_raw` or `redistribute_from` must be specified.")
+        """Validate the given values fit with a primary or secondary metric."""
+        if self.process_raw is not None:
+            self._is_primary = True
+            self_ = self._validate_primary()
+        else:
+            self_ = self._validate_secondary()
+
+        return self_
+
+    def _validate_primary(self) -> Self:
+        """Validate metric region as if its a primary source."""
+        if not callable(self.process_raw):
+            raise ValueError("If the metric region is primary, then `process_raw` must be a function.")
+        self.process_raw_kwargs = self.process_raw_kwargs or {}
+        errors_with_process_raw = []
+
+        kwarg_to_type = {kwarg_name: type(value) for kwarg_name, value in self.process_raw_kwargs.items()} | {
+            "parent_metric": Metric,
+            "region": RegionABC,
+            "return": pl.DataFrame,
+            "_kwargs": dict,
+        }
+
+        for kwarg_name, passed_type in kwarg_to_type.items():
+            expected_type = get_type_hints(self.process_raw).get(kwarg_name)
+            if passed_type is not expected_type:
+                errors_with_process_raw.append(
+                    f"`process_raw` kwargs/ returns must align for parameter name: `{kwarg_name}` ."
+                    f"types: expected type: `{passed_type}` and function type: `{expected_type}`."
+                )
+
+        expected_kwarg_names = list(get_type_hints(self.process_raw).keys())
+        passed_kwarg_names = list(kwarg_to_type.keys())
+        if set(expected_kwarg_names) != set(passed_kwarg_names):
+            errors_with_process_raw.append(
+                f"`process_raw` & `process_raw_kwargs` kwargs list must align: "
+                f"`{expected_kwarg_names}` != `{passed_kwarg_names}`."
+            )
+
+        if len(errors_with_process_raw):
+            raise ValueError(
+                "Errors with `process_raw` & possibly `process_raw_kwargs`:\n\n" + "\n".join(errors_with_process_raw)
+            )
+
+        return self
+
+    def _validate_secondary(self) -> Self:
+        """Validate metric region as if its a secondary source."""
+        if self.redistribute_from is None:
+            raise ValueError("If the metric region is secondary, then `redistribute_from` must be set.")
+        self.redistribute_kwargs = self.redistribute_kwargs or {}
+
+        expected_redistribute_kwarg_names = set(get_type_hints(redistribute).keys()) - {
+            "data_by_from",
+            "region_from",
+            "region_to",
+        }
+        passed_redistribute_kwarg_names = set(self.redistribute_kwargs.keys())
+        if passed_redistribute_kwarg_names - expected_redistribute_kwarg_names:
+            raise ValueError(
+                f"Bad `redistribute_kwargs` passed. Allowed: `{expected_redistribute_kwarg_names!r}` ."
+                f"extras received: `{(passed_redistribute_kwarg_names - expected_redistribute_kwarg_names)!r}`"
+            )
+
         return self
 
 
