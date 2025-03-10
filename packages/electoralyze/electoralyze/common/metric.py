@@ -230,21 +230,21 @@ class Metric(BaseModel):
 
     def _validate_allowed_regions(self):
         """Validate the `allowed_regions` make sense."""
-        regions_with_processors: list[str] = []
-        regions_to_redistribute: dict[str, str] = {}
+        primary_regions: list[str] = []
+        secondary_regions: dict[str, str] = {}
         errors = []
 
         for metric_region in self.allowed_regions:
-            if metric_region.redistribute_from is not None:
-                regions_to_redistribute[metric_region.region.id] = metric_region.redistribute_from.id
-            if metric_region.process_raw is not None:
-                regions_with_processors.append(metric_region.region.id)
+            if metric_region.is_primary:
+                primary_regions.append(metric_region.region.id)
+            else:
+                secondary_regions[metric_region.region.id] = metric_region.redistribute_from.id
 
-        if len(regions_with_processors) == 0:
+        if len(primary_regions) == 0:
             errors.append("There are no regions with `process_raw` functions")
 
-        for region_id, redistribute_from_id in regions_to_redistribute.items():
-            if redistribute_from_id not in regions_with_processors:
+        for region_id, redistribute_from_id in secondary_regions.items():
+            if redistribute_from_id not in primary_regions:
                 errors.append(f"Redistribution from region {region_id} must have a `process_raw` function")
 
         if len(errors) > 0:
@@ -300,7 +300,7 @@ class Metric(BaseModel):
     def process_raw(self):
         """Process raw data for all allowed regions."""
         for metric_region in self.allowed_regions:
-            if metric_region.process_raw is not None:
+            if metric_region.is_primary:
                 logging.info(f"Processing raw data for {metric_region.region.id!r}")
                 kwargs = metric_region.process_raw_kwargs or {}
                 processed_data = metric_region.process_raw(
@@ -339,10 +339,10 @@ class Metric(BaseModel):
 
         region_metric = self.allowed_regions_map[region.id]
 
-        if region_metric.redistribute_from:
-            metric_data = self._get_redistributed_data(region)
-        else:
+        if region_metric.is_primary:
             metric_data = self._get_stored_data(region)
+        else:
+            metric_data = self._get_redistributed_data(region)
 
         if metric_data.schema != self._get_schema(region):
             raise ValueError(
