@@ -6,7 +6,7 @@ import polars as pl
 from electoralyze.common.files import create_path
 from electoralyze.region.redistribute import redistribute
 from electoralyze.region.region_abc import RegionABC
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 from typing_extensions import Self
 
 METRIC_DATA_TYPES = Literal["categorical", "ordinal", "numeric", "single"]
@@ -32,15 +32,22 @@ class MetricRegion(BaseModel):
     redistribute_kwargs: dict | None = None
     process_raw: Callable[[], pl.DataFrame] | None = None
     process_raw_kwargs: dict | None = None
-    _is_primary: bool = False
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @computed_field
+    @property
+    def is_primary(self) -> bool:
+        """Whether the region is a primary region."""
+        is_primary_ = self.process_raw is not None
+        return is_primary_
+
+    ## Validation
 
     @model_validator(mode="after")
     def validate(self) -> Self:
         """Validate the given values fit with a primary or secondary metric."""
-        if self.process_raw is not None:
-            self._is_primary = True
+        if self.is_primary:
             self_ = self._validate_primary()
         else:
             self_ = self._validate_secondary()
@@ -49,6 +56,11 @@ class MetricRegion(BaseModel):
 
     def _validate_primary(self) -> Self:
         """Validate metric region as if its a primary source."""
+        if self.redistribute_from is not None:
+            raise ValueError("If the metric region is primary, then `redistribute_from` should be None.")
+        if self.redistribute_kwargs is not None:
+            raise ValueError("If the metric region is primary, then `redistribute_kwargs` should be None.")
+
         if not callable(self.process_raw):
             raise ValueError("If the metric region is primary, then `process_raw` must be a function.")
         self.process_raw_kwargs = self.process_raw_kwargs or {}
@@ -86,6 +98,9 @@ class MetricRegion(BaseModel):
 
     def _validate_secondary(self) -> Self:
         """Validate metric region as if its a secondary source."""
+        if self.process_raw_kwargs is not None:
+            raise ValueError("If the metric region is secondary, then `process_raw_kwargs` should be None.")
+
         if self.redistribute_from is None:
             raise ValueError("If the metric region is secondary, then `redistribute_from` must be set.")
         self.redistribute_kwargs = self.redistribute_kwargs or {}

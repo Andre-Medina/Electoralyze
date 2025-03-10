@@ -65,11 +65,14 @@ def test_metric_region_create(region: RegionMocked):
         )
         return data
 
-    MetricRegion(region=region.rectangle, process_raw=process_raw_population)
-    MetricRegion(region=region.triangle, redistribute_from=region.rectangle)
-    MetricRegion(
+    metric_region_a = MetricRegion(region=region.rectangle, process_raw=process_raw_population)
+    assert metric_region_a.is_primary is True
+    metric_region_b = MetricRegion(region=region.triangle, redistribute_from=region.rectangle)
+    assert metric_region_b.is_primary is False
+    metric_region_c = MetricRegion(
         region=region.triangle, redistribute_from=region.rectangle, redistribute_kwargs={"region_via": region.quadrant}
     )
+    assert metric_region_c.is_primary is False
 
     with pytest.raises(ValueError):
         MetricRegion(region=region.rectangle)
@@ -100,6 +103,24 @@ def test_metric_region_create(region: RegionMocked):
                 "process_raw_kwargs": {"extra": "helloworld"},
             },
             None,
+        ),
+        (
+            "Primary region: passed redistribute from, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "process_raw": _process_raw_test,
+                "redistribute_from": THREE_TRIANGLES_REGION_ID,
+            },
+            ValueError,
+        ),
+        (
+            "Primary region: passed redistribute kwargs, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "process_raw": _process_raw_test,
+                "redistribute_kwargs": {"aggregation": "mean"},
+            },
+            ValueError,
         ),
         (
             "Primary region: missing extra, ",
@@ -139,12 +160,46 @@ def test_metric_region_create(region: RegionMocked):
             {"region": THREE_TRIANGLES_REGION_ID, "process_raw": _process_raw_no_parent_type},
             ValueError,
         ),
+        (
+            "Secondary region: typical working, ",
+            {"region": THREE_TRIANGLES_REGION_ID, "redistribute_from": THREE_RECTANGLE_REGION_ID},
+            None,
+        ),
+        (
+            "Secondary region: extra working, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "redistribute_from": THREE_RECTANGLE_REGION_ID,
+                "redistribute_kwargs": {"aggregation": "mean"},
+            },
+            None,
+        ),
+        (
+            "Secondary region: process raw kwargs, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "redistribute_from": THREE_RECTANGLE_REGION_ID,
+                "process_raw_kwargs": {"a": 1},
+            },
+            ValueError,
+        ),
+        ("Secondary region: missing from, ", {"region": THREE_TRIANGLES_REGION_ID}, ValueError),
+        (
+            "Secondary region: bad kwargs, ",
+            {
+                "region": THREE_TRIANGLES_REGION_ID,
+                "redistribute_from": THREE_RECTANGLE_REGION_ID,
+                "redistribute_kwargs": {"aggregation_": "mean"},
+            },
+            ValueError,
+        ),
     ],
 )
 def test_bad_metric_region_create(_name: str, inputs: dict, error: type[Exception], region: RegionMocked):
     """Test creating a bad metric region raises an error where needed."""
     inputs["region"] = region.from_id(inputs["region"])
-    inputs["redistribute_from"] = region.from_id(inputs.get("redistribute_from"))
+    if "redistribute_from" in inputs:
+        inputs["redistribute_from"] = region.from_id(inputs["redistribute_from"])
 
     if error is not None:
         with pytest.raises(error):
