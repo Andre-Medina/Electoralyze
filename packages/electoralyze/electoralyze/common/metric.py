@@ -414,7 +414,18 @@ class Metric(BaseModel):
 
         >>> my_metric = Metric(...)
         >>> my_metric.by(region=region.SA1_2021)
-
+        shape: (100, 3)
+        ┌───────────┬────────────┬────────────┐
+        │ region_id │ category   │ value      │
+        │ ---       │ ---        │ ---        │
+        │ str       │ i32        │ f32        │
+        ╞═══════════╪════════════╪════════════╡
+        │ "X"       │ 1          │ 0.1        │
+        │ "X"       │ 2          │ 0.2        │
+        │ ...       │ ...        │ ...        │
+        │ "Y"       │ 1          │ 2.1        │
+        │ "Y"       │ 2          │ 3.2        │
+        └───────────┴────────────┴────────────┘
         """
         if region.id not in self.allowed_regions_map:
             raise KeyError(f"Region {region.id!r} not found for metric: {self.full_name!r}")
