@@ -331,24 +331,24 @@ class Metric(BaseModel):
         Example
         -------
         With this function as is:
-        ```python
+
         >>> my_metric = Metric(processed_path = "/home/user/.../data/my_metric/{region_id}.parquet", ...)
         >>> my_metric.get_processed_path()
         /home/user/.../data/my_metric/{region_id}.parquet
-        ```
+
 
         Overwriting this function to use other attributes:
-        ```python
+
         >>> class SubMetric(Metric):
-        >>>    ...
-        >>>    def get_processed_path(self) -> str:
-        >>>        processed_path = f"/home/user/.../data/{self.name}/{{region_id}}.parquet"
-        >>>        return processed_path
-        >>>
+        ...    ...
+        ...    def get_processed_path(self) -> str:
+        ...        processed_path = f"/home/user/.../data/{self.name}/{{region_id}}.parquet"
+        ...        return processed_path
+        ...
         >>> my_metric = SubMetric(name="test_new_name", ...)
         >>> my_metric.get_processed_path()
         /home/user/.../data/test_new_name/{region_id}.parquet
-        ```
+
         """
         processed_path = self.processed_path
         return processed_path
@@ -360,8 +360,10 @@ class Metric(BaseModel):
 
         Parameters
         ----------
-        force_new (bool, optional): If True, will force a new download of the raw data. Defaults to False.
-        download (bool, optional): If True, will download the raw data. Defaults to True.
+        force_new (bool, optional): Defaults to False,
+            If True, will force a new download of the raw data.
+        download (bool, optional): Defaults to True,
+            If True, will download the raw data.
         """
         for metric_region in self.allowed_regions:
             if metric_region.is_primary:
@@ -398,17 +400,19 @@ class Metric(BaseModel):
 
         Parameters
         ----------
-        region : RegionABC, region to get data for, must be in `allowed_regions`.
+        region : RegionABC,
+            The region to get data for, must be in `allowed_regions`.
 
         Returns
         -------
         pl.DataFrame, data for the given metric
 
         Example
-        ```
+        -------
+
         >>> my_metric = Metric(...)
         >>> my_metric.by(region=region.SA1_2021)
-        ```
+
         """
         if region.id not in self.allowed_regions_map:
             raise KeyError(f"Region {region.id!r} not found for metric: {self.full_name!r}")
