@@ -1,10 +1,14 @@
 import os
 import tempfile
+import time
+from random import choices
 
 import polars as pl
 import pytest
 from electoralyze.common.metric import Metric, MetricRegion
 from electoralyze.common.testing.region_fixture import (
+    ONE_SQUARE_REGION_ID,
+    REGION_JSONS,
     THREE_RECTANGLE_REGION_ID,
     THREE_TRIANGLES_REGION_ID,
     RegionMocked,
@@ -18,13 +22,37 @@ def _process_raw_test(
     parent_metric: Metric, region: RegionABC, force_new: bool, download: bool, **_kwargs: dict
 ) -> pl.DataFrame:
     """Fake `process_raw` function for any metric or region."""
-    data = pl.DataFrame(
+    if region.id not in [THREE_RECTANGLE_REGION_ID, ONE_SQUARE_REGION_ID]:
+        raise NotImplementedError("This region is not implemented.")
+
+    region_ids = choices(REGION_JSONS[region.id][region.id], k=4)  # noqa: S311
+    schema = pl.Schema(
         {
-            region.id: ["A", "A", "B", "B"],
-            parent_metric.category_column: [2020, 2021] * 2,
-            parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
+            "region_id": pl.String,
+            parent_metric.category_column: pl.Int32,
+            parent_metric.value_column: pl.Float32,
         }
     )
+
+    if download:
+        data = pl.DataFrame(
+            {
+                "region_id": region_ids,
+                parent_metric.category_column: [2020, 2021] * 2,
+                parent_metric.value_column: [-10.0, -20.0, -30.0, -40.0],
+            },
+            schema=schema,
+        )
+
+    else:
+        data = pl.DataFrame(
+            {
+                "region_id": region_ids,
+                parent_metric.category_column: [2020, 2021] * 2,
+                parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
+            },
+            schema=schema,
+        )
 
     return data
 
@@ -34,7 +62,7 @@ def _process_raw_population(
 ) -> pl.DataFrame:
     """Fake `process_raw` function for any metric or region."""
     data = pl.DataFrame(
-        {"SA1_2021": ["A", "A", "B", "B"], "year": [2020, 2021] * 2, "population": [10.0, 20.0, 30.0, 40.0]}
+        {"region_id": ["A", "A", "B", "B"], "year": [2020, 2021] * 2, "population": [10.0, 20.0, 30.0, 40.0]}
     )
     return data
 
@@ -217,46 +245,109 @@ def test_bad_metric_region_create(_name: str, inputs: dict, error: type[Exceptio
         MetricRegion(**inputs)
 
 
-def test_metric_basic_create(region: RegionMocked):
-    """Test creating a metric works as intended."""
+# Basic Metric
+
+
+@pytest.fixture
+def basic_metric_fixture(region: RegionMocked):
+    """Create a basic metric for testing."""
     with tempfile.TemporaryDirectory() as temp_dir:
         my_metric = Metric(
             name="population",
-            data_type="numeric",
-            category_column="year",
-            value_column="population",
-            schema_getter=lambda region: pl.Schema({region.id: pl.String, "year": pl.Int64, "population": pl.Float64}),
             processed_path=f"{temp_dir}/data/my_metric/{{region_id}}.parquet",
             allowed_regions=[
                 MetricRegion(region=region.rectangle, process_raw=_process_raw_test),
                 MetricRegion(region=region.triangle, redistribute_from=region.rectangle),
             ],
         )
+        yield region, my_metric, temp_dir
 
-        with pytest.raises(FileNotFoundError):
-            my_metric.by(region.rectangle)
-        my_metric.process_raw()
+
+def test_basic_metric_create(basic_metric_fixture: tuple[RegionMocked, Metric, str]):
+    """Test creating a metric works as intended."""
+    (
+        _region,
+        my_metric,
+        _temp_dir,
+    ) = basic_metric_fixture
+    assert my_metric is not None, "Did not create basic_metric"
+
+
+def test_basic_metric_process_raw(basic_metric_fixture: tuple[RegionMocked, Metric, str]):
+    """Test creating a metric works as intended."""
+    (
+        region,
+        my_metric,
+        _temp_dir,
+    ) = basic_metric_fixture
+
+    with pytest.raises(FileNotFoundError):
         my_metric.by(region.rectangle)
 
-        with pytest.raises(NotImplementedError):
-            my_metric.by(region.triangle)
+    my_metric.process_raw()
+    my_metric.by(region.rectangle)
 
-        with pytest.raises(KeyError):
-            my_metric.by(region.quadrant)
+    with pytest.raises(NotImplementedError):
+        my_metric.by(region.triangle)
 
-        processed_path = my_metric.get_processed_path().format(region_id=region.rectangle.id)
-        assert processed_path == f"{temp_dir}/data/my_metric/{region.rectangle.id}.parquet", "bad path formatting."
+    with pytest.raises(KeyError):
+        my_metric.by(region.quadrant)
 
-        # Test force new works
-        time_initial = os.path.getmtime(processed_path)
 
-        my_metric.process_raw(force_new=False)
-        time_redownload = os.path.getmtime(processed_path)
-        assert time_initial == time_redownload, "The data should not have changed."
+def test_basic_metric_basic_processed_path(basic_metric_fixture: tuple[RegionMocked, Metric, str]):
+    """Test creating a metric works as intended."""
+    (
+        region,
+        my_metric,
+        temp_dir,
+    ) = basic_metric_fixture
+    my_metric.process_raw()
 
-        my_metric.process_raw(force_new=True)
-        time_force_new = os.path.getmtime(processed_path)
-        assert time_initial != time_force_new, "The data should have changed."
+    processed_path = my_metric.get_processed_path().format(region_id=region.rectangle.id)
+    assert processed_path == f"{temp_dir}/data/my_metric/{region.rectangle.id}.parquet", "bad path formatting."
+
+    assert os.path.exists(processed_path), "The processed path does not exist."
+
+
+def test_basic_metric_force_new(basic_metric_fixture: tuple[RegionMocked, Metric, str]):
+    """Test creating a metric works as intended."""
+    (
+        region,
+        my_metric,
+        _temp_dir,
+    ) = basic_metric_fixture
+    my_metric.process_raw()
+    processed_path = my_metric.get_processed_path().format(region_id=region.rectangle.id)
+
+    time_initial = os.path.getmtime(processed_path)
+
+    my_metric.process_raw(force_new=False)
+    time_redownload = os.path.getmtime(processed_path)
+    assert time_initial == time_redownload, "The data should not have changed."
+
+    time.sleep(1e-12)
+    my_metric.process_raw(force_new=True)
+    time_force_new = os.path.getmtime(processed_path)
+    assert time_initial != time_force_new, "The data should have changed."
+
+
+def test_basic_metric_download(basic_metric_fixture: tuple[RegionMocked, Metric, str]):
+    """Test creating a metric works as intended."""
+    (
+        region,
+        my_metric,
+        _temp_dir,
+    ) = basic_metric_fixture
+
+    my_metric.process_raw(download=True)
+    data_with_download_in_region = my_metric.by(region.rectangle)
+    assert (data_with_download_in_region["value"] > 0).any() is False, "Download went wrong, All values meant to be <0."
+
+    my_metric.process_raw(download=False)
+    data_with_download_in_region = my_metric.by(region.rectangle)
+    assert (
+        data_with_download_in_region["value"] < 0
+    ).any() is True, "No Download went wrong, All values meant to be >0."
 
 
 @pytest.mark.parametrize(
@@ -268,12 +359,12 @@ def test_metric_basic_create(region: RegionMocked):
         ("Bad value column type, ", {"value_column": 123}, ValueError),
         ("Bad processed path type, ", {"processed_path": 123}, ValueError),
         ("Bad allowed regions type, ", {"allowed_regions": 123}, ValueError),
-        ("schema getter not a function, ", {"schema_getter": 123}, ValueError),
+        ("schema getter not a pl.Schema, ", {"schema": 123}, ValueError),
         ("Category column not in schema, ", {"category_column": "no_year"}, ValueError),
         ("Path has no {region_id}, ", {"processed_path": "not_a_folder/data/my_metric/region_id.parquet"}, ValueError),
         ("Path is not parquet, ", {"processed_path": "not_a_folder/data/my_metric/{region_id}.csv"}, ValueError),
         ("Value column not in schema, ", {"category_column": "no_year"}, ValueError),
-        ("Schema has bad cols, ", {"schema_getter": lambda region: pl.Schema({region.id: pl.String})}, ValueError),
+        ("Schema has bad cols, ", {"schema": pl.Schema({"region_id": pl.String})}, ValueError),
         ("No regions, ", {"allowed_regions": []}, ValueError),
         ("No real regions, ", {"allowed_regions": [1, 2]}, ValueError),
         (
@@ -301,10 +392,6 @@ def test_bad_metric_creations(_name: str, input_override: dict, error: type[Exce
 
     good_data = dict(
         name="population",
-        data_type="numeric",
-        category_column="year",
-        value_column="population",
-        schema_getter=lambda region: pl.Schema({region.id: pl.String, "year": pl.Int64, "population": pl.Float64}),
         processed_path="not_a_folder/data/my_metric/{region_id}.parquet",
         allowed_regions=[MetricRegion(region=region.rectangle, process_raw=_process_raw_test)],
     )
@@ -332,16 +419,17 @@ def test_bad_metric_creations_bad_region_getter(region: RegionMocked):
         )
 
 
-def test_subclassing_metric(region: RegionMocked):
-    """Test creating a sub metric works as intended."""
-    SUB = "sub"
-    POPULATION_NAME = "population"
-    AGE_NAME = "population"
+# Subclassing
 
+SUB = "sub"
+POPULATION_NAME = "population"
+AGE_NAME = "population"
+
+
+@pytest.fixture
+def sub_metric_fixture(region: RegionMocked) -> tuple[RegionMocked, Metric, Metric, str]:
+    """Create a sub metric for testing."""
     with tempfile.TemporaryDirectory() as temp_dir:
-
-        def schema_getter(region_id, category_column, value_column):
-            """Get the schema."""
 
         class SubMetric(Metric):
             name_suffix: str = SUB
@@ -358,10 +446,10 @@ def test_subclassing_metric(region: RegionMocked):
                 )
                 return file
 
-            def _get_schema(self, region: RegionABC) -> pl.Schema:
-                """Overrideable function to change kwargs in schema getter."""
+            def _get_schema(self, region: RegionABC) -> pl.Schema:  # noqa: ARG002
+                """Overridable function to change kwargs in schema getter."""
                 schema = pl.Schema(
-                    {region.id: pl.String, self.category_column: pl.Int64, self.value_column: pl.Float64}
+                    {"region_id": pl.String, self.category_column: pl.Int32, self.value_column: pl.Float32}
                 )
                 return schema
 
@@ -382,31 +470,48 @@ def test_subclassing_metric(region: RegionMocked):
             ],
         )
 
-        with pytest.raises(FileNotFoundError):
-            population_metric.by(region.rectangle)
-        population_metric.process_raw()
+        return region, population_metric, age_metric, temp_dir
+
+
+def test_subclassing_metric_create(sub_metric_fixture: tuple[RegionMocked, Metric, Metric, str]):
+    """Test creating a sub metric works as intended."""
+    _region, population_metric, age_metric, _temp_dir = sub_metric_fixture
+    assert population_metric is not None, "Did not create population metric"
+    assert age_metric is not None, "Did not create age metric"
+
+
+def test_subclassing_metric_process_raw(sub_metric_fixture: tuple[RegionMocked, Metric, Metric, str]):
+    """Test creating a sub metric works as intended."""
+    region, population_metric, age_metric, _temp_dir = sub_metric_fixture
+
+    with pytest.raises(FileNotFoundError):
         population_metric.by(region.rectangle)
+    population_metric.process_raw()
+    population_metric.by(region.rectangle)
 
-        with pytest.raises(FileNotFoundError):
-            age_metric.by(region.square)
-        age_metric.process_raw()
+    with pytest.raises(NotImplementedError):
+        population_metric.by(region.triangle)
+    with pytest.raises(NotImplementedError):
+        age_metric.by(region.l_and_r)
+
+    with pytest.raises(FileNotFoundError):
         age_metric.by(region.square)
+    age_metric.process_raw()
+    age_metric.by(region.square)
 
-        with pytest.raises(NotImplementedError):
-            population_metric.by(region.triangle)
-        with pytest.raises(NotImplementedError):
-            age_metric.by(region.l_and_r)
+    with pytest.raises(KeyError):
+        population_metric.by(region.square)
+    with pytest.raises(KeyError):
+        age_metric.by(region.rectangle)
 
-        with pytest.raises(KeyError):
-            population_metric.by(region.square)
-        with pytest.raises(KeyError):
-            age_metric.by(region.rectangle)
 
-        processed_path = population_metric.get_processed_path().format(region_id=region.triangle.id)
-        assert (
-            processed_path == f"{temp_dir}/data/{SUB}/{POPULATION_NAME}/{region.triangle.id}.parquet"
-        ), "bad path formatting."
-        processed_path = age_metric.get_processed_path().format(region_id=region.triangle.id)
-        assert (
-            processed_path == f"{temp_dir}/data/{SUB}/{AGE_NAME}/{region.triangle.id}.parquet"
-        ), "bad path formatting."
+def test_subclassing_metric_path(sub_metric_fixture: tuple[RegionMocked, Metric, Metric, str]):
+    """Test creating a sub metric works as intended."""
+    region, population_metric, age_metric, temp_dir = sub_metric_fixture
+
+    processed_path = population_metric.get_processed_path().format(region_id=region.triangle.id)
+    assert (
+        processed_path == f"{temp_dir}/data/{SUB}/{POPULATION_NAME}/{region.triangle.id}.parquet"
+    ), "bad path formatting."
+    processed_path = age_metric.get_processed_path().format(region_id=region.triangle.id)
+    assert processed_path == f"{temp_dir}/data/{SUB}/{AGE_NAME}/{region.triangle.id}.parquet", "bad path formatting."

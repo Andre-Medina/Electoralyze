@@ -135,7 +135,7 @@ class Metric(BaseModel):
     processed_path: str, path to the processed data, must be formattable with `{region}`.
     category_column: str, column name for the category.
     value_column: str, column to use for the metric.
-    schema_getter: Callable[type(RegionABC), pl.Schema], function to get the schema for a given region.
+    schema: pl.Schema, the schema for a given region.
 
     Example
     -------
@@ -152,11 +152,10 @@ class Metric(BaseModel):
     ...     processed_path="/home/user/.../data/my_metric/{region}.parquet",
     ...     data_type="ordinal",
     ...     category_column="year",
-    ...     value_column="population",
-    ...     schema_getter = lambda region: pl.Schema({
-    ...         region.id: pl.String,
+    ...     schema = pl.Schema({
+    ...         "region_id": pl.String,
     ...         "year": pl.Int32,
-    ...         "population": pl.Float32,
+    ...         "value": pl.Float32,
     ...     }),
     ... )
     ```
@@ -169,8 +168,8 @@ class Metric(BaseModel):
     ...     name_prefix: str = "census_2021"
     ...     processed_path: None = None
     ...     data_type: METRIC_DATA_TYPES = "numeric"
-    ...     schema_getter = lambda region: pl.Schema({
-    ...         region.id: pl.String,
+    ...     schema = pl.Schema({
+    ...         "region_id": pl.String,
     ...         "year": pl.Int32,
     ...         "population": pl.Float32,
     ...     }),
@@ -197,11 +196,17 @@ class Metric(BaseModel):
     allowed_regions: list[MetricRegion]
     name: str
     name_prefix: str | None = None
-    data_type: METRIC_DATA_TYPES
     processed_path: str
-    category_column: str
-    value_column: str
-    schema_getter: Callable[[type[RegionABC]], pl.Schema]
+    data_type: METRIC_DATA_TYPES = "numeric"
+    category_column: str = "category"
+    value_column: str = "value"
+    schema: pl.Schema = pl.Schema(
+        {
+            "region_id": pl.String,
+            "category": pl.Int32,
+            "value": pl.Float32,
+        }
+    )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -214,8 +219,10 @@ class Metric(BaseModel):
 
         fake_schema: pl.Schema = self._get_schema(_FakeRegion)
         schema_columns = set(fake_schema.keys())
-        if schema_columns != {_FakeRegion.id, self.category_column, self.value_column}:
-            raise ValueError("Schema must have columns `region_id`, `category_column`, and `value_column`.")
+        if schema_columns != {"region_id", self.category_column, self.value_column}:
+            raise ValueError(
+                f"Schema must have columns `region_id`, `{self.category_column}`, and `{self.value_column}`."
+            )
 
         if len(self.allowed_regions) == 0:
             raise ValueError("At least one `MetricRegion` must be specified.")
@@ -329,7 +336,14 @@ class Metric(BaseModel):
                 processed_data.write_parquet(processed_file)
 
                 # Validate data is available
-                self.by(region=metric_region.region)
+                reread_data = self.by(region=metric_region.region)
+                regions_in_data = reread_data["region_id"].unique()
+                regions_allowed = metric_region.region.geometry[metric_region.region.id].unique()
+                if len(set(regions_in_data) - set(regions_allowed)) > 0:
+                    raise ValueError(
+                        f"Data for {metric_region.region.id!r} not found in processed data. "
+                        f"Allowed: {regions_allowed}, Got: {regions_in_data}"
+                    )
 
     def by(self, region: RegionABC) -> pl.DataFrame:
         """Get data stored for a given region.
@@ -366,9 +380,9 @@ class Metric(BaseModel):
 
         return metric_data
 
-    def _get_schema(self, region: RegionABC) -> pl.Schema:
+    def _get_schema(self, region: RegionABC) -> pl.Schema:  # noqa: ARG002
         """Overrideable function to change kwargs in schema getter."""
-        return self.schema_getter(region)
+        return self.schema
 
     def _get_stored_data(self, region: RegionABC) -> pl.DataFrame:
         """Get data stored from an existing processed_file."""
