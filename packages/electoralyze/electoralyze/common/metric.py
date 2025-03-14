@@ -1,4 +1,5 @@
 import logging
+import os
 from functools import cached_property
 from typing import Callable, Literal, get_type_hints
 
@@ -9,7 +10,7 @@ from electoralyze.region.region_abc import RegionABC
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 from typing_extensions import Self
 
-METRIC_DATA_TYPES = Literal["categorical", "ordinal", "numeric", "single"]
+METRIC_DATA_TYPES = Literal["categorical", "ordinal", "numeric", "integer"]
 
 
 class MetricRegion(BaseModel):
@@ -20,11 +21,38 @@ class MetricRegion(BaseModel):
 
     Parameters
     ----------
-    region: RegionABC, region to get data for.
-    process_raw: Callable[[], pl.DataFrame] | None = None, function to read and return the raw data.
-    process_raw_kwargs: dict | None = None, kwargs to pass to `process_raw`.
-    redistribute_from: RegionABC | None = None, region to redistribute data from.
-    redistribute_kwargs: dict | None = None, kwargs to pass to `redistribute_from.redistribute`.
+    region: RegionABC
+        region to get data for.
+    process_raw: Callable[[], pl.DataFrame] | None = None
+        function to read and return the raw data,
+        View Metric for schema information.
+    process_raw_kwargs: dict | None = None
+        kwargs to pass to `process_raw`.
+    redistribute_from: RegionABC | None = None
+        region to redistribute data from.
+    redistribute_kwargs: dict | None = None
+        kwargs to pass to `redistribute_from.redistribute`.
+
+    Example
+    -------
+    Creating a primary region
+
+    >>> from electoralyze.common.metric import MetricRegion
+    >>> from electoralyze import region
+    >>> MetricRegion(
+    ...     region=region.SA1_2021,
+    ...     process_raw = process_raw_population,
+    ... )
+
+    Creating a secondary region
+
+    >>> from electoralyze.common.metric import MetricRegion
+    >>> from electoralyze import region
+    >>> MetricRegion(
+    ...     region=region.SA2_2021,
+    ...     redistribute_from=region.SA1_2021,
+    ... )
+
     """
 
     region: type[RegionABC]
@@ -70,6 +98,8 @@ class MetricRegion(BaseModel):
             "parent_metric": Metric,
             "region": RegionABC,
             "return": pl.DataFrame,
+            "download": bool,
+            "force_new": bool,
             "_kwargs": dict,
         }
 
@@ -125,19 +155,40 @@ class Metric(BaseModel):
 
     Parameters
     ----------
-    allowed_regions: list[MetricRegion], list of `MetricRegion` to specify which regions are allowed.
-    name: str, name of the metric.
-    name_prefix: str | None = None, optional prefix for the name, can be accessed by `full_name`.
-    data_type: METRIC_DATA_TYPES, type of the data, one of `categorical`, `ordinal`, `numeric`, `single`.
-    processed_path: str, path to the processed data, must be formattable with `{region}`.
-    category_column: str, column name for the category.
-    value_column: str, column to use for the metric.
-    schema_getter: Callable[type(RegionABC), pl.Schema], function to get the schema for a given region.
+    allowed_regions: list[MetricRegion]
+        A list of `MetricRegion` to specify which regions are allowed.
+    name: str
+        the name of the metric.
+    name_prefix: str | None, default = None
+        optional prefix for the name, can be accessed by `full_name`.
+    data_type: METRIC_DATA_TYPES, default = "numeric"
+        the type of the data, one of `categorical`, `ordinal`, `numeric`, `integer`.
+    processed_path: str
+        path to the processed data, must be formattable with `{region}`.
+    category_column: str, default = "category"
+        The column name for the category.
+    value_column: str, default = "value"
+        The column to use for the metric.
+    schema: pl.Schema
+        `default = pl.Schema({"region_id": pl.String, "category": pl.Int32, "value": pl.Float32})`
+        the schema for a given region.
 
     Example
     -------
-    Basic usage to create a single metric:
-    ```python
+    simplistic usage to create a single metric
+
+    >>> from electoralyze.common.metric import Metric, MetricRegion
+    >>> from electoralyze import region
+    >>> Metric(
+    ...     allowed_regions=[
+    ...         MetricRegion(region.SA1_2021, process_raw = process_raw_population),
+    ...     ],
+    ...     name="my_metric",
+    ...     processed_path="/home/user/.../data/my_metric/{region}.parquet",
+    ... )
+
+    Basic usage to create a single metric with some custom logic
+
     >>> from electoralyze.common.metric import Metric, MetricRegion
     >>> from electoralyze import region
     >>> Metric(
@@ -149,27 +200,26 @@ class Metric(BaseModel):
     ...     processed_path="/home/user/.../data/my_metric/{region}.parquet",
     ...     data_type="ordinal",
     ...     category_column="year",
-    ...     value_column="population",
-    ...     schema_getter = lambda region: pl.Schema({
-    ...         region.id: pl.String,
+    ...     schema = pl.Schema({
+    ...         "region_id": pl.String,
     ...         "year": pl.Int32,
-    ...         "population": pl.Float32,
+    ...         "value": pl.Float32,
     ...     }),
     ... )
-    ```
 
     Creating a subclass used for several similar metrics (view tests for more examples):
-    ```python
+
     >>> from electoralyze.common.metric import Metric, MetricRegion
     >>> from electoralyze import region
     >>> class Census2021(Metric):
     ...     name_prefix: str = "census_2021"
     ...     processed_path: None = None
-    ...     data_type: METRIC_DATA_TYPES = "numeric"
-    ...     schema_getter = lambda region: pl.Schema({
-    ...         region.id: pl.String,
+    ...     data_type: METRIC_DATA_TYPES = "integer"
+    ...     category_column="year",
+    ...     schema = pl.Schema({
+    ...         "region_id": pl.String,
     ...         "year": pl.Int32,
-    ...         "population": pl.Float32,
+    ...         "value": pl.Int32,
     ...     }),
     ...
     ...
@@ -183,22 +233,30 @@ class Metric(BaseModel):
     ...         MetricRegion(region.SA1_2021, process_raw = process_raw_population),
     ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
     ...     ],
+    ... )
     >>> income = Census2021(
-    ...     name="population",
+    ...     name="income",
     ...     allowed_regions=[
     ...         MetricRegion(region.SA1_2021, process_raw = process_raw_income),
     ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
     ...     ],
+    ... )
     """
 
     allowed_regions: list[MetricRegion]
     name: str
     name_prefix: str | None = None
-    data_type: METRIC_DATA_TYPES
     processed_path: str
-    category_column: str
-    value_column: str
-    schema_getter: Callable[[type[RegionABC]], pl.Schema]
+    data_type: METRIC_DATA_TYPES = "numeric"
+    category_column: str = "category"
+    value_column: str = "value"
+    schema: pl.Schema = pl.Schema(
+        {
+            "region_id": pl.String,
+            "category": pl.Int32,
+            "value": pl.Float32,
+        }
+    )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -211,8 +269,10 @@ class Metric(BaseModel):
 
         fake_schema: pl.Schema = self._get_schema(_FakeRegion)
         schema_columns = set(fake_schema.keys())
-        if schema_columns != {_FakeRegion.id, self.category_column, self.value_column}:
-            raise ValueError("Schema must have columns `region_id`, `category_column`, and `value_column`.")
+        if schema_columns != {"region_id", self.category_column, self.value_column}:
+            raise ValueError(
+                f"Schema must have columns `region_id`, `{self.category_column}`, and `{self.value_column}`."
+            )
 
         if len(self.allowed_regions) == 0:
             raise ValueError("At least one `MetricRegion` must be specified.")
@@ -273,66 +333,99 @@ class Metric(BaseModel):
         Example
         -------
         With this function as is:
-        ```python
+
         >>> my_metric = Metric(processed_path = "/home/user/.../data/my_metric/{region_id}.parquet", ...)
         >>> my_metric.get_processed_path()
         /home/user/.../data/my_metric/{region_id}.parquet
-        ```
+
 
         Overwriting this function to use other attributes:
-        ```python
+
         >>> class SubMetric(Metric):
-        >>>    ...
-        >>>    def get_processed_path(self) -> str:
-        >>>        processed_path = f"/home/user/.../data/{self.name}/{{region_id}}.parquet"
-        >>>        return processed_path
-        >>>
+        ...    ...
+        ...    def get_processed_path(self) -> str:
+        ...        processed_path = f"/home/user/.../data/{self.name}/{{region_id}}.parquet"
+        ...        return processed_path
+        ...
         >>> my_metric = SubMetric(name="test_new_name", ...)
         >>> my_metric.get_processed_path()
         /home/user/.../data/test_new_name/{region_id}.parquet
-        ```
+
         """
         processed_path = self.processed_path
         return processed_path
 
     #### Get and set data #####
 
-    def process_raw(self):
-        """Process raw data for all allowed regions."""
+    def process_raw(self, *, force_new: bool = False, download: bool = True, **kwargs: dict):
+        """Process raw data for all allowed regions.
+
+        Parameters
+        ----------
+        force_new (bool, optional): Defaults to False
+            If True, will force a new download of the raw data.
+        download (bool, optional): Defaults to True
+            If True, will download the raw data.
+        """
         for metric_region in self.allowed_regions:
             if metric_region.is_primary:
+                processed_file = self.get_processed_path().format(region_id=metric_region.region.id)
+                create_path(processed_file)
+                if (not force_new) and (os.path.exists(processed_file)):
+                    logging.info(f"Skipping processing raw data for {metric_region.region.id!r}")
+                    continue
+
                 logging.info(f"Processing raw data for {metric_region.region.id!r}")
-                kwargs = metric_region.process_raw_kwargs or {}
+                default_kwargs = metric_region.process_raw_kwargs or {}
                 processed_data = metric_region.process_raw(
                     parent_metric=self,
                     region=metric_region.region,
-                    **kwargs,
+                    force_new=force_new,
+                    download=download,
+                    **(default_kwargs | kwargs),
                 )
-
-                processed_file = self.get_processed_path().format(region_id=metric_region.region.id)
-                create_path(processed_file)
 
                 processed_data.write_parquet(processed_file)
 
                 # Validate data is available
-                self.by(region=metric_region.region)
+                reread_data = self.by(region=metric_region.region)
+                regions_in_data = reread_data["region_id"].unique()
+                regions_allowed = metric_region.region.geometry[metric_region.region.id].unique()
+                if len(set(regions_in_data) - set(regions_allowed)) > 0:
+                    raise ValueError(
+                        f"Data for {metric_region.region.id!r} not found in processed data. "
+                        f"Allowed: {regions_allowed}, Got: {regions_in_data}"
+                    )
 
     def by(self, region: RegionABC) -> pl.DataFrame:
         """Get data stored for a given region.
 
         Parameters
         ----------
-        region : RegionABC, region to get data for, must be in `allowed_regions`.
+        region : RegionABC
+            The region to get data for, must be in `allowed_regions`.
 
         Returns
         -------
         pl.DataFrame, data for the given metric
 
         Example
-        ```
+        -------
+
         >>> my_metric = Metric(...)
         >>> my_metric.by(region=region.SA1_2021)
-        ```
+        shape: (100, 3)
+        ┌───────────┬────────────┬────────────┐
+        │ region_id │ category   │ value      │
+        │ ---       │ ---        │ ---        │
+        │ str       │ i32        │ f32        │
+        ╞═══════════╪════════════╪════════════╡
+        │ "X"       │ 1          │ 0.1        │
+        │ "X"       │ 2          │ 0.2        │
+        │ ...       │ ...        │ ...        │
+        │ "Y"       │ 1          │ 2.1        │
+        │ "Y"       │ 2          │ 3.2        │
+        └───────────┴────────────┴────────────┘
         """
         if region.id not in self.allowed_regions_map:
             raise KeyError(f"Region {region.id!r} not found for metric: {self.full_name!r}")
@@ -352,9 +445,9 @@ class Metric(BaseModel):
 
         return metric_data
 
-    def _get_schema(self, region: RegionABC) -> pl.Schema:
+    def _get_schema(self, region: RegionABC) -> pl.Schema:  # noqa: ARG002
         """Overrideable function to change kwargs in schema getter."""
-        return self.schema_getter(region)
+        return self.schema
 
     def _get_stored_data(self, region: RegionABC) -> pl.DataFrame:
         """Get data stored from an existing processed_file."""
