@@ -21,16 +21,16 @@ class MetricRegion(BaseModel):
 
     Parameters
     ----------
-    region: RegionABC,
+    region: RegionABC
         region to get data for.
-    process_raw: Callable[[], pl.DataFrame] | None = None,
+    process_raw: Callable[[], pl.DataFrame] | None = None
         function to read and return the raw data,
         View Metric for schema information.
-    process_raw_kwargs: dict | None = None,
+    process_raw_kwargs: dict | None = None
         kwargs to pass to `process_raw`.
-    redistribute_from: RegionABC | None = None,
+    redistribute_from: RegionABC | None = None
         region to redistribute data from.
-    redistribute_kwargs: dict | None = None,
+    redistribute_kwargs: dict | None = None
         kwargs to pass to `redistribute_from.redistribute`.
 
     Example
@@ -159,17 +159,17 @@ class Metric(BaseModel):
         A list of `MetricRegion` to specify which regions are allowed.
     name: str
         the name of the metric.
-    name_prefix: str | None, default = None,
+    name_prefix: str | None, default = None
         optional prefix for the name, can be accessed by `full_name`.
     data_type: METRIC_DATA_TYPES, default = "numeric"
         the type of the data, one of `categorical`, `ordinal`, `numeric`, `integer`.
-    processed_path: str,
+    processed_path: str
         path to the processed data, must be formattable with `{region}`.
-    category_column: str, default = "category",
+    category_column: str, default = "category"
         The column name for the category.
-    value_column: str, default = "value",
+    value_column: str, default = "value"
         The column to use for the metric.
-    schema: pl.Schema,
+    schema: pl.Schema
         `default = pl.Schema({"region_id": pl.String, "category": pl.Int32, "value": pl.Float32})`
         the schema for a given region.
 
@@ -233,12 +233,14 @@ class Metric(BaseModel):
     ...         MetricRegion(region.SA1_2021, process_raw = process_raw_population),
     ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
     ...     ],
+    ... )
     >>> income = Census2021(
     ...     name="income",
     ...     allowed_regions=[
     ...         MetricRegion(region.SA1_2021, process_raw = process_raw_income),
     ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
     ...     ],
+    ... )
     """
 
     allowed_regions: list[MetricRegion]
@@ -360,9 +362,9 @@ class Metric(BaseModel):
 
         Parameters
         ----------
-        force_new (bool, optional): Defaults to False,
+        force_new (bool, optional): Defaults to False
             If True, will force a new download of the raw data.
-        download (bool, optional): Defaults to True,
+        download (bool, optional): Defaults to True
             If True, will download the raw data.
         """
         for metric_region in self.allowed_regions:
@@ -400,7 +402,7 @@ class Metric(BaseModel):
 
         Parameters
         ----------
-        region : RegionABC,
+        region : RegionABC
             The region to get data for, must be in `allowed_regions`.
 
         Returns
