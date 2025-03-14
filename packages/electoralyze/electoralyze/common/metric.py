@@ -10,7 +10,7 @@ from electoralyze.region.region_abc import RegionABC
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 from typing_extensions import Self
 
-METRIC_DATA_TYPES = Literal["categorical", "ordinal", "numeric", "single"]
+METRIC_DATA_TYPES = Literal["categorical", "ordinal", "numeric", "integer"]
 
 
 class MetricRegion(BaseModel):
@@ -21,11 +21,38 @@ class MetricRegion(BaseModel):
 
     Parameters
     ----------
-    region: RegionABC, region to get data for.
-    process_raw: Callable[[], pl.DataFrame] | None = None, function to read and return the raw data.
-    process_raw_kwargs: dict | None = None, kwargs to pass to `process_raw`.
-    redistribute_from: RegionABC | None = None, region to redistribute data from.
-    redistribute_kwargs: dict | None = None, kwargs to pass to `redistribute_from.redistribute`.
+    region: RegionABC,
+        region to get data for.
+    process_raw: Callable[[], pl.DataFrame] | None = None,
+        function to read and return the raw data,
+        View Metric for schema information.
+    process_raw_kwargs: dict | None = None,
+        kwargs to pass to `process_raw`.
+    redistribute_from: RegionABC | None = None,
+        region to redistribute data from.
+    redistribute_kwargs: dict | None = None,
+        kwargs to pass to `redistribute_from.redistribute`.
+
+    Example
+    -------
+    Creating a primary region
+
+    >>> from electoralyze.common.metric import MetricRegion
+    >>> from electoralyze import region
+    >>> MetricRegion(
+    ...     region=region.SA1_2021,
+    ...     process_raw = process_raw_population,
+    ... )
+
+    Creating a secondary region
+
+    >>> from electoralyze.common.metric import MetricRegion
+    >>> from electoralyze import region
+    >>> MetricRegion(
+    ...     region=region.SA2_2021,
+    ...     redistribute_from=region.SA1_2021,
+    ... )
+
     """
 
     region: type[RegionABC]
@@ -128,19 +155,40 @@ class Metric(BaseModel):
 
     Parameters
     ----------
-    allowed_regions: list[MetricRegion], list of `MetricRegion` to specify which regions are allowed.
-    name: str, name of the metric.
-    name_prefix: str | None = None, optional prefix for the name, can be accessed by `full_name`.
-    data_type: METRIC_DATA_TYPES, type of the data, one of `categorical`, `ordinal`, `numeric`, `single`.
-    processed_path: str, path to the processed data, must be formattable with `{region}`.
-    category_column: str, column name for the category.
-    value_column: str, column to use for the metric.
-    schema: pl.Schema, the schema for a given region.
+    allowed_regions: list[MetricRegion]
+        A list of `MetricRegion` to specify which regions are allowed.
+    name: str
+        the name of the metric.
+    name_prefix: str | None, default = None,
+        optional prefix for the name, can be accessed by `full_name`.
+    data_type: METRIC_DATA_TYPES, default = "numeric"
+        the type of the data, one of `categorical`, `ordinal`, `numeric`, `integer`.
+    processed_path: str,
+        path to the processed data, must be formattable with `{region}`.
+    category_column: str, default = "category",
+        The column name for the category.
+    value_column: str, default = "value",
+        The column to use for the metric.
+    schema: pl.Schema,
+        `default = pl.Schema({"region_id": pl.String, "category": pl.Int32, "value": pl.Float32})`
+        the schema for a given region.
 
     Example
     -------
-    Basic usage to create a single metric:
-    ```python
+    simplistic usage to create a single metric
+
+    >>> from electoralyze.common.metric import Metric, MetricRegion
+    >>> from electoralyze import region
+    >>> Metric(
+    ...     allowed_regions=[
+    ...         MetricRegion(region.SA1_2021, process_raw = process_raw_population),
+    ...     ],
+    ...     name="my_metric",
+    ...     processed_path="/home/user/.../data/my_metric/{region}.parquet",
+    ... )
+
+    Basic usage to create a single metric with some custom logic
+
     >>> from electoralyze.common.metric import Metric, MetricRegion
     >>> from electoralyze import region
     >>> Metric(
@@ -158,20 +206,20 @@ class Metric(BaseModel):
     ...         "value": pl.Float32,
     ...     }),
     ... )
-    ```
 
     Creating a subclass used for several similar metrics (view tests for more examples):
-    ```python
+
     >>> from electoralyze.common.metric import Metric, MetricRegion
     >>> from electoralyze import region
     >>> class Census2021(Metric):
     ...     name_prefix: str = "census_2021"
     ...     processed_path: None = None
-    ...     data_type: METRIC_DATA_TYPES = "numeric"
+    ...     data_type: METRIC_DATA_TYPES = "integer"
+    ...     category_column="year",
     ...     schema = pl.Schema({
     ...         "region_id": pl.String,
     ...         "year": pl.Int32,
-    ...         "population": pl.Float32,
+    ...         "value": pl.Int32,
     ...     }),
     ...
     ...
@@ -186,7 +234,7 @@ class Metric(BaseModel):
     ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
     ...     ],
     >>> income = Census2021(
-    ...     name="population",
+    ...     name="income",
     ...     allowed_regions=[
     ...         MetricRegion(region.SA1_2021, process_raw = process_raw_income),
     ...         MetricRegion(region.LGA_2021, redistribute_from=region.SA1_2021),
