@@ -325,7 +325,7 @@ def test_basic_metric_force_new(basic_metric_fixture: tuple[RegionMocked, Metric
     time_redownload = os.path.getmtime(processed_path)
     assert time_initial == time_redownload, "The data should not have changed."
 
-    time.sleep(1e-12)
+    time.sleep(1e-4)
     my_metric.process_raw(force_new=True)
     time_force_new = os.path.getmtime(processed_path)
     assert time_initial != time_force_new, "The data should have changed."
