@@ -1,4 +1,5 @@
 import logging
+import os
 from functools import cached_property
 from typing import Callable, Literal, get_type_hints
 
@@ -70,6 +71,8 @@ class MetricRegion(BaseModel):
             "parent_metric": Metric,
             "region": RegionABC,
             "return": pl.DataFrame,
+            "download": bool,
+            "force_new": bool,
             "_kwargs": dict,
         }
 
@@ -297,20 +300,31 @@ class Metric(BaseModel):
 
     #### Get and set data #####
 
-    def process_raw(self):
-        """Process raw data for all allowed regions."""
+    def process_raw(self, *, force_new: bool = False, download: bool = True, **kwargs: dict):
+        """Process raw data for all allowed regions.
+
+        Parameters
+        ----------
+        force_new (bool, optional): If True, will force a new download of the raw data. Defaults to False.
+        download (bool, optional): If True, will download the raw data. Defaults to True.
+        """
         for metric_region in self.allowed_regions:
             if metric_region.is_primary:
+                processed_file = self.get_processed_path().format(region_id=metric_region.region.id)
+                create_path(processed_file)
+                if (not force_new) and (os.path.exists(processed_file)):
+                    logging.info(f"Skipping processing raw data for {metric_region.region.id!r}")
+                    continue
+
                 logging.info(f"Processing raw data for {metric_region.region.id!r}")
-                kwargs = metric_region.process_raw_kwargs or {}
+                default_kwargs = metric_region.process_raw_kwargs or {}
                 processed_data = metric_region.process_raw(
                     parent_metric=self,
                     region=metric_region.region,
-                    **kwargs,
+                    force_new=force_new,
+                    download=download,
+                    **(default_kwargs | kwargs),
                 )
-
-                processed_file = self.get_processed_path().format(region_id=metric_region.region.id)
-                create_path(processed_file)
 
                 processed_data.write_parquet(processed_file)
 

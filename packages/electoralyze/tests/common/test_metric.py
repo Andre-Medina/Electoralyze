@@ -1,3 +1,4 @@
+import os
 import tempfile
 
 import polars as pl
@@ -13,21 +14,8 @@ from electoralyze.region.region_abc import RegionABC
 ## FIXTURES AND FUNCTIONS
 
 
-def _process_raw_test(parent_metric: Metric, region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
-    """Fake `process_raw` function for any metric or region."""
-    data = pl.DataFrame(
-        {
-            region.id: ["A", "A", "B", "B"],
-            parent_metric.category_column: [2020, 2021] * 2,
-            parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
-        }
-    )
-
-    return data
-
-
-def _process_raw_test_extra_kwargs(
-    parent_metric: Metric, region: RegionABC, extra: str, **_kwargs: dict
+def _process_raw_test(
+    parent_metric: Metric, region: RegionABC, force_new: bool, download: bool, **_kwargs: dict
 ) -> pl.DataFrame:
     """Fake `process_raw` function for any metric or region."""
     data = pl.DataFrame(
@@ -41,17 +29,46 @@ def _process_raw_test_extra_kwargs(
     return data
 
 
-def _process_raw_no_return(parent_metric: Metric, region: RegionABC, **_kwargs: dict) -> None:
+def _process_raw_population(
+    parent_metric: Metric, region: RegionABC, force_new: bool, download: bool, **_kwargs: dict
+) -> pl.DataFrame:
+    """Fake `process_raw` function for any metric or region."""
+    data = pl.DataFrame(
+        {"SA1_2021": ["A", "A", "B", "B"], "year": [2020, 2021] * 2, "population": [10.0, 20.0, 30.0, 40.0]}
+    )
+    return data
+
+
+def _process_raw_test_extra_kwargs(
+    parent_metric: Metric, region: RegionABC, extra: str, force_new: bool, download: bool, **_kwargs: dict
+) -> pl.DataFrame:
+    """Fake `process_raw` function for any metric or region."""
+    data = pl.DataFrame(
+        {
+            region.id: ["A", "A", "B", "B"],
+            parent_metric.category_column: [2020, 2021] * 2,
+            parent_metric.value_column: [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+    return data
+
+
+def _process_raw_no_return(
+    parent_metric: Metric, region: RegionABC, force_new: bool, download: bool, **_kwargs: dict
+) -> None:
     """Empty `process_raw` function for mocking."""
     pass
 
 
-def _process_raw_no_parent(region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
+def _process_raw_no_parent(region: RegionABC, force_new: bool, download: bool, **_kwargs: dict) -> pl.DataFrame:
     """Empty `process_raw` function for mocking."""
     pass
 
 
-def _process_raw_no_parent_type(parent_metric, region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
+def _process_raw_no_parent_type(
+    parent_metric, region: RegionABC, force_new: bool, download: bool, **_kwargs: dict
+) -> pl.DataFrame:
     """Empty `process_raw` function for mocking."""
     pass
 
@@ -61,14 +78,7 @@ def _process_raw_no_parent_type(parent_metric, region: RegionABC, **_kwargs: dic
 
 def test_metric_region_create(region: RegionMocked):
     """Test creating a metric region works as intended."""
-
-    def process_raw_population(parent_metric: Metric, region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
-        data = pl.DataFrame(
-            {"SA1_2021": ["A", "A", "B", "B"], "year": [2020, 2021] * 2, "population": [10.0, 20.0, 30.0, 40.0]}
-        )
-        return data
-
-    metric_region_a = MetricRegion(region=region.rectangle, process_raw=process_raw_population)
+    metric_region_a = MetricRegion(region=region.rectangle, process_raw=_process_raw_population)
     assert metric_region_a.is_primary is True
     metric_region_b = MetricRegion(region=region.triangle, redistribute_from=region.rectangle)
     assert metric_region_b.is_primary is False
@@ -234,8 +244,19 @@ def test_metric_basic_create(region: RegionMocked):
         with pytest.raises(KeyError):
             my_metric.by(region.quadrant)
 
-        processed_path = my_metric.get_processed_path().format(region_id=region.triangle.id)
-        assert processed_path == f"{temp_dir}/data/my_metric/{region.triangle.id}.parquet", "bad path formatting."
+        processed_path = my_metric.get_processed_path().format(region_id=region.rectangle.id)
+        assert processed_path == f"{temp_dir}/data/my_metric/{region.rectangle.id}.parquet", "bad path formatting."
+
+        # Test force new works
+        time_initial = os.path.getmtime(processed_path)
+
+        my_metric.process_raw(force_new=False)
+        time_redownload = os.path.getmtime(processed_path)
+        assert time_initial == time_redownload, "The data should not have changed."
+
+        my_metric.process_raw(force_new=True)
+        time_force_new = os.path.getmtime(processed_path)
+        assert time_initial != time_force_new, "The data should have changed."
 
 
 @pytest.mark.parametrize(
