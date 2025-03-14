@@ -158,7 +158,7 @@ class Metric(BaseModel):
     ... )
     ```
 
-    Creating a subclass used for several similar metrics:
+    Creating a subclass used for several similar metrics (view tests for more examples):
     ```python
     >>> from electoralyze.common.metric import Metric, MetricRegion
     >>> from electoralyze import region

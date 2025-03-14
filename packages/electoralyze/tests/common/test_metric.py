@@ -42,14 +42,17 @@ def _process_raw_test_extra_kwargs(
 
 
 def _process_raw_no_return(parent_metric: Metric, region: RegionABC, **_kwargs: dict) -> None:
+    """Empty `process_raw` function for mocking."""
     pass
 
 
 def _process_raw_no_parent(region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
+    """Empty `process_raw` function for mocking."""
     pass
 
 
 def _process_raw_no_parent_type(parent_metric, region: RegionABC, **_kwargs: dict) -> pl.DataFrame:
+    """Empty `process_raw` function for mocking."""
     pass
 
 
@@ -78,10 +81,6 @@ def test_metric_region_create(region: RegionMocked):
         MetricRegion(region=region.rectangle)
     with pytest.raises(ValueError):
         MetricRegion(region=region.rectangle, redistribute_kwargs={"region_via": region.quadrant})
-
-    # Bad process_raw function
-    # Bad process_raw function kwarg list (cant accept `parent_metric`)
-    # Bad redistribute from
 
 
 @pytest.mark.parametrize(
@@ -238,13 +237,11 @@ def test_metric_basic_create(region: RegionMocked):
         processed_path = my_metric.get_processed_path().format(region_id=region.triangle.id)
         assert processed_path == f"{temp_dir}/data/my_metric/{region.triangle.id}.parquet", "bad path formatting."
 
-    # Check path is formatted correctly
-
 
 @pytest.mark.parametrize(
     "_name, input_override, error",
     [
-        ("Bad data type value, ", {}, None),
+        ("base case works, ", {}, None),
         ("Bad data type value, ", {"data_type": "BAD CATEGORY"}, ValueError),
         ("Bad category column type, ", {"category_column": 123}, ValueError),
         ("Bad value column type, ", {"value_column": 123}, ValueError),

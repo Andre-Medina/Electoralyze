@@ -17,3 +17,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SA2_2021` region with processed data.
 - Federal election 2022 boundaries with processed data.
 - `redistribute` function to redistribute data between different geometries.
+- `Metric` system to encapsulate different metrics in a consistent format.
