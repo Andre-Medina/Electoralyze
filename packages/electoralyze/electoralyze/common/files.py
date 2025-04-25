@@ -1,5 +1,8 @@
+import logging
 import os
+from zipfile import ZipFile
 
+import polars as pl
 import requests
 
 BASE_TIMEOUT = 60
@@ -17,7 +20,7 @@ def create_path(file_path: str, /):
     os.makedirs(dir_path, exist_ok=True)
 
 
-def download_file(url, filename, *, timeout: int = BASE_TIMEOUT):
+def download_file(url: str, filename: str, *, timeout: int = BASE_TIMEOUT):
     """Download a file from a given URL and save it locally.
 
     Parameters
@@ -40,3 +43,28 @@ def download_file(url, filename, *, timeout: int = BASE_TIMEOUT):
         for chunk in response.iter_content(chunk_size=8192):
             if chunk:  # Filter out keep-alive chunks
                 file.write(chunk)
+
+
+def pl_scan_csv_zip(*, csv_zip_url: str, schema: pl.Schema, add_file_name: bool = False, **scan_kwargs) -> pl.LazyFrame:
+    """Scan all CSV files in a combined zip."""
+    read_data = []
+
+    with ZipFile(csv_zip_url, "r") as zip:
+        for file in zip.filelist:
+            logging.info(f"reading: {file.filename!r}")
+            if not file.filename.endswith(".csv"):
+                raise ValueError("Found non CSV file in zip.")
+
+            file_name_column = pl.lit(file.filename).alias("file_name")
+
+            read_data.append(
+                pl.scan_csv(
+                    zip.open(file.filename),
+                    schema=schema,
+                    **scan_kwargs,
+                ).with_columns(file_name_column if add_file_name else [])
+            )
+
+    combined_data = pl.concat(read_data)
+
+    return combined_data
