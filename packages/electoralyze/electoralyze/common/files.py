@@ -20,7 +20,7 @@ def create_path(file_path: str, /):
     os.makedirs(dir_path, exist_ok=True)
 
 
-def download_file(url: str, filename: str, *, timeout: int = BASE_TIMEOUT):
+def download_file(url: str, filename: str, *, force_new: bool = False, timeout: int = BASE_TIMEOUT):
     """Download a file from a given URL and save it locally.
 
     Parameters
@@ -32,6 +32,10 @@ def download_file(url: str, filename: str, *, timeout: int = BASE_TIMEOUT):
     -------
     bool: True if successful, False otherwise
     """
+    if (not force_new) and (os.path.exists(filename)):
+        logging.info(f"Already exists, skipping downloading {filename!r}")
+        return
+
     create_path(filename)
 
     response = requests.get(url, stream=True, timeout=timeout)
@@ -53,7 +57,7 @@ def pl_scan_csv_zip(*, csv_zip_url: str, schema: pl.Schema, add_file_name: bool 
         for file in zip.filelist:
             logging.info(f"reading: {file.filename!r}")
             if not file.filename.endswith(".csv"):
-                raise ValueError("Found non CSV file in zip.")
+                raise ValueError("Found non-CSV file in zip.")
 
             file_name_column = pl.lit(file.filename).alias("file_name")
 
