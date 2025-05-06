@@ -28,30 +28,36 @@ def redistribute(
 
     Parameters
     ----------
-    data_by_from: pl.DataFrame,
-    index_columns: list[str] | None, Index columns in the input dataframe to keep.
-    region_from: RegionABC, From region to redistribute, should be a column in the dataframe.
-    region_to: RegionABC, To region to redistribute, Will output data with this column.
-    region_via: RegionABC | None, If given, will convert region_from -> region_via -> region_to. Useful to
-    weights: Literal["population"] | None, weighting to use to redistribute data.
+    data_by_from : pl.DataFrame,
+    index_columns : list[str] | None,
+        Index columns in the input dataframe to keep.
+    region_from : RegionABC,
+        From region to redistribute, should be a column in the dataframe.
+    region_to : RegionABC,
+        To region to redistribute, Will output data with this column.
+    region_via : RegionABC | None,
+        If given, will convert region_from -> region_via -> region_to. Useful to
+    weights : Literal["population"] | None,
+        weighting to use to redistribute data.
         - None: redistribute by pure `mapping` as the weight.
         - "population", Will use population as a weight.
-    mapping: Literal["intersection_area", "centroid_distance"] | pl.DataFrame, mapping to
-        geometrically redistribute data.
-        - "intersection_area": Will use the intersection area of each regions.
-        - "centroid_distance": Will use the centroid distance of each regions.
-        - pl.DataFrame: Will use the custom mapping, with columns `region_from`, `region_to`, and `mapping`.
-    aggregation: Literal["sum", "mean", "count", "max", "min"], mapping to aggregate the redistributed data.
-        - "sum": Will take the proportional sum the sub regions.
-        - "mean": Will take the proportional mean of sub regions.
-        - "count": Will take the proportional count of sub regions.
-        - "max": Will take the absolute max of sub regions.
-        - "min": Will take the absolute min of sub regions.
-    redistribute_with_full: bool | None = None,
+    mapping : Literal["intersection_area", "centroid_distance"] | pl.DataFrame,
+        mapping to geometrically redistribute data.
+        - "intersection_area" : Will use the intersection area of each regions.
+        - "centroid_distance" : Will use the centroid distance of each regions.
+        - pl.DataFrame : Will use the custom mapping, with columns `region_from`, `region_to`, and `mapping`.
+    aggregation : Literal["sum", "mean", "count", "max", "min"],
+        mapping to aggregate the redistributed data.
+        - "sum" : Will take the proportional sum the sub regions.
+        - "mean" : Will take the proportional mean of sub regions.
+        - "count" : Will take the proportional count of sub regions.
+        - "max" : Will take the absolute max of sub regions.
+        - "min" : Will take the absolute min of sub regions.
+    redistribute_with_full : bool | None = None,
         - None = only use existing static redistribution map files.
         - False = Will create redistribution maps using simplified geometries for each region.
         - True = Will create redistribution maps using full geometries for each region (EXPENSIVE!).
-    errors: Literal["raise", "warning"] = "raise",
+    errors : Literal["raise", "warning"] = "raise",
         - "raise": Will raise an error if the redistribution fails.
         - "warning": Will print a warning if the redistribution fails.
 
@@ -311,7 +317,7 @@ def _aggregate(
             raise ValueError(f"Unknown aggregation method `{aggregation_method}`.")
 
     if index_columns:
-        data_by_to = data_distributed.group_by(region_to.id, index_columns).agg(*aggregation_expressions)
+        data_by_to = data_distributed.group_by(region_to.id, *index_columns).agg(*aggregation_expressions)
     else:
         data_by_to = data_distributed.group_by(region_to.id).agg(*aggregation_expressions)
 
