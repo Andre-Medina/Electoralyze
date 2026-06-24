@@ -297,9 +297,7 @@ class RegionABC(ABC):
     @classmethod
     def download_data(cls, *, force_new: bool = False):
         """Download the raw data from the source."""
-        if (not force_new) and (os.path.exists(cls.raw_geometry_file)):
-            return
-        download_file(cls.raw_geometry_url, cls.raw_geometry_file, timeout=cls.timeout)
+        download_file(cls.raw_geometry_url, cls.raw_geometry_file, timeout=cls.timeout, force_new=force_new)
 
     @classmethod
     def get_raw_geometry(cls) -> st.GeoDataFrame:
